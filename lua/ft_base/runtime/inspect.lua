@@ -183,14 +183,33 @@ function Inspect.Refresh(swep)
     end
 end
 
+local function activeWeapon()
+    local player = LocalPlayer and LocalPlayer()
+
+    if not player or not player.GetActiveWeapon then
+        return nil
+    end
+
+    return player:GetActiveWeapon()
+end
+
+function Inspect.ToggleActiveWeapon()
+    local swep = activeWeapon()
+
+    if validWeapon(swep) then
+        return Inspect.Toggle(swep)
+    end
+
+    return false
+end
+
 if CLIENT and concommand then
     concommand.Add("ft_customize", function()
-        local player = LocalPlayer and LocalPlayer()
-        local swep = player and player.GetActiveWeapon and player:GetActiveWeapon()
+        Inspect.ToggleActiveWeapon()
+    end)
 
-        if validWeapon(swep) then
-            Inspect.Toggle(swep)
-        end
+    concommand.Add("ft_customice", function()
+        Inspect.ToggleActiveWeapon()
     end)
 end
 

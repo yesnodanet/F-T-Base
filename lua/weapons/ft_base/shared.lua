@@ -50,7 +50,35 @@ function SWEP:Reload()
 end
 
 function SWEP:Think()
-    return FTBase.Runtime.Engine.Think(self)
+    FTBase.Runtime.Engine.Think(self)
+
+    if CLIENT and FTBase.Runtime.Inspect and self.FTRuntime then
+        local owner = self.GetOwner and self:GetOwner()
+
+        if owner and owner == LocalPlayer() and owner.KeyDown then
+            if IN_USE and IN_RELOAD and owner:KeyDown(IN_USE) and owner:KeyDown(IN_RELOAD) then
+                self.FTNextCustomizeOpen = self.FTNextCustomizeOpen or 0
+
+                if CurTime() >= self.FTNextCustomizeOpen then
+                    self.FTNextCustomizeOpen = CurTime() + 0.5
+                    FTBase.Runtime.Inspect.Toggle(self)
+                end
+            end
+        end
+    end
+end
+
+function SWEP:DrawHUD()
+    if not CLIENT or not self.FTRuntime then
+        return
+    end
+
+    if not draw or not ScrW or not ScrH then
+        return
+    end
+
+    local text = "F&T: hold USE + RELOAD to customize"
+    draw.SimpleText(text, "DermaDefault", ScrW() / 2, ScrH() - 96, Color(230, 235, 240), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
 end
 
 function SWEP:Move(ply, moveData)

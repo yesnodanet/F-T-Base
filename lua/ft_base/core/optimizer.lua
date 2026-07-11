@@ -15,9 +15,21 @@ local function resolveLiteral(value)
         return nil
     end
 
-    if value.__type == "Vector" or value.__type == "Angle" then
-        return value
-    end
+    if value.__type == "Vector" then
+		if Vector then
+			return Vector(tonumber(value.x) or 0, tonumber(value.y) or 0, tonumber(value.z) or 0)
+		end
+
+		return value
+	end
+
+	if value.__type == "Angle" then
+		if Angle then
+			return Angle(tonumber(value.p) or 0, tonumber(value.y) or 0, tonumber(value.r) or 0)
+		end
+
+		return value
+	end
 
     local resolved = {}
 
