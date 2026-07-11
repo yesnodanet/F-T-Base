@@ -25,6 +25,7 @@ function Adapter.New(definition)
     local adapter = setmetatable({}, Adapter)
 
     adapter.Name = definition.Name
+    adapter.Provider = definition.Provider or string.lower(definition.Name or "mixed")
     adapter.Aliases = definition.Aliases or {}
     adapter.Rules = ruleList(definition.Rules or {})
     adapter.Deprecated = definition.Deprecated or {}
@@ -95,11 +96,44 @@ function Adapter:ApplyRule(path, value, context, node)
 end
 
 function Adapter:Map(path, value, context, node)
-    if self:ApplyRule(path, value, context, node) then
+    local exactRule = self:FindRule(path)
+    local isTable = type(value) == "table"
+    local shouldApplyExact = exactRule and (not isTable or Table.IsArray(value) or not self:HasChildRule(path))
+
+    if shouldApplyExact and self:ApplyRule(path, value, context, node) then
         return true
     end
 
     if type(value) == "table" and not Table.IsArray(value) then
+        local mappedChild = false
+        local handled = {}
+
+        for _, key in ipairs(Table.Keys(value)) do
+            local childPath = Table.DeepCopy(path)
+            childPath[#childPath + 1] = key
+
+            if self:CanMap(childPath) then
+                handled[key] = true
+                mappedChild = self:Map(childPath, value[key], context, node) or mappedChild
+            end
+        end
+
+        if mappedChild then
+            for _, key in ipairs(Table.Keys(value)) do
+                if not handled[key] then
+                    local childPath = Table.DeepCopy(path)
+                    childPath[#childPath + 1] = key
+                    local leaves = Table.FlattenLeaves(value[key], childPath)
+
+                    for _, leaf in ipairs(leaves) do
+                        context.report:AddUnknown(self.Name, Path.Join(leaf.path), leaf.value, node)
+                    end
+                end
+            end
+
+            return true
+        end
+
         local mappedAny = false
         local leaves = Table.FlattenLeaves(value, path)
 
@@ -112,6 +146,10 @@ function Adapter:Map(path, value, context, node)
         end
 
         return mappedAny
+    end
+
+    if exactRule then
+        return self:ApplyRule(path, value, context, node)
     end
 
     return false

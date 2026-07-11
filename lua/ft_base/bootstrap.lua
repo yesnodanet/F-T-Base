@@ -3,7 +3,7 @@ FTBase = FTBase or {}
 local FT = FTBase
 
 FT.Name = "F&T Base"
-FT.Version = "0.2.0"
+FT.Version = "0.3.0"
 FT.BootedAt = os.time()
 
 local function includeShared(path)
@@ -20,6 +20,7 @@ local files = {
     "ft_base/util/table.lua",
     "ft_base/util/path.lua",
     "ft_base/util/math.lua",
+    "ft_base/util/types.lua",
 
     "ft_base/core/report.lua",
     "ft_base/core/ir.lua",

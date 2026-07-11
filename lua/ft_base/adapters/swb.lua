@@ -64,11 +64,13 @@ local rules = {
 
     ["Animations"] = { ir = "animations.base" },
     ["Attachments"] = { ir = "attachments.slots" },
-    ["AttachmentDefinitions"] = { ir = "attachments.definitions" }
+    ["AttachmentDefinitions"] = { ir = "attachments.definitions" },
+    ["Customization.Provider"] = { ir = "ui.customization.provider", transform = function() return "swb" end }
 }
 
 FTBase.Adapters.SWB = FTBase.Adapters.Make({
     Name = "SWB",
+    Provider = "swb",
     Aliases = {"swb"},
     Rules = rules
 })

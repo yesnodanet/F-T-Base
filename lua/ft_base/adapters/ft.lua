@@ -121,11 +121,14 @@ local rules = {
     ["Rendering.HoldType"] = { ir = "rendering.holdType" },
     ["Rendering.UseHands"] = { ir = "rendering.useHands" },
     ["UI.DrawAmmo"] = { ir = "ui.drawAmmo" },
-    ["UI.Crosshair"] = { ir = "ui.crosshair" }
+    ["UI.Crosshair"] = { ir = "ui.crosshair" },
+    ["Customization.Provider"] = { ir = "ui.customization.provider" },
+    ["Customization.OpenCommand"] = { ir = "ui.customization.openCommand" }
 }
 
 FTBase.Adapters.FT = FTBase.Adapters.Make({
     Name = "FT",
+    Provider = "ft",
     Aliases = {"F&T", "FTBase", "FamiliaTarka"},
     Rules = rules
 })

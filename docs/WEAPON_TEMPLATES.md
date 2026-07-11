@@ -71,6 +71,30 @@ secondary attack. The client opens the inspect panel. Installation requests are
 validated by the server against the weapon owner, slot, attachment id, and
 declared attachment type; the authoritative result is sent back to the client.
 
+## Customization Providers
+
+The compiler writes the selected UI implementation to
+`ir.ui.customization.provider`. The available providers are:
+
+- `ft`: neutral F&T layout;
+- `tfa`: category-oriented TFA attachment workflow;
+- `swb`: compact SWB slot workflow;
+- `mw`: MW-style gunsmith layout;
+- `mixed`: source-aware layout for weapons combining dialects.
+
+Provider selection is automatic for a single source style. Mixed weapons use
+the first `FT.Priority` style when it has a supported provider. Authors can
+force the implementation explicitly:
+
+```lua
+FT.Customization.Provider = "TFA"
+```
+
+This selects the F&T-native TFA provider and does not require the external TFA
+base. The provider controls slot ordering, grouping, labels, descriptions,
+window layout, and request construction; attachment installation still uses
+the shared server-side IR validation path.
+
 Supported modifier forms are:
 
 - a number, which replaces the current value;

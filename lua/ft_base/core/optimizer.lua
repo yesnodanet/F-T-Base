@@ -3,41 +3,7 @@ FTBase = FTBase or {}
 local Optimizer = {}
 
 local function resolveLiteral(value)
-    if type(value) ~= "table" then
-        return value
-    end
-
-    if value.__type == "Symbol" then
-        return value
-    end
-
-    if value.__type == "Nil" then
-        return nil
-    end
-
-    if value.__type == "Vector" then
-		if Vector then
-			return Vector(tonumber(value.x) or 0, tonumber(value.y) or 0, tonumber(value.z) or 0)
-		end
-
-		return value
-	end
-
-	if value.__type == "Angle" then
-		if Angle then
-			return Angle(tonumber(value.p) or 0, tonumber(value.y) or 0, tonumber(value.r) or 0)
-		end
-
-		return value
-	end
-
-    local resolved = {}
-
-    for key, item in pairs(value) do
-        resolved[key] = resolveLiteral(item)
-    end
-
-    return resolved
+    return FTBase.Util.Types.ResolveLiteral(value)
 end
 
 local function normalizePatternEntry(entry)

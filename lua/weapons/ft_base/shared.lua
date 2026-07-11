@@ -95,9 +95,29 @@ function SWEP:CalcView(ply, origin, angles, fov)
     return FTBase.Runtime.Camera.CalcView(self.FTRuntime, ply, origin, angles, fov)
 end
 
+function SWEP:GetViewModelPosition(position, angle)
+    if not self.FTRuntime then
+        return position, angle
+    end
+
+    local ir = FTBase.Runtime.Attachments.GetEffectiveIR(self.FTRuntime) or self.FTRuntime.ir
+    local aimPosition, aimAngle = FTBase.Runtime.Rendering.GetAimPose(ir)
+    local fraction = self.FTRuntime.aimFraction or 0
+
+    if aimPosition and position then
+        position = position + aimPosition * fraction
+    end
+
+    if aimAngle and angle then
+        angle = angle + aimAngle * fraction
+    end
+
+    return position, angle
+end
+
 function SWEP:FTOpenCustomization()
-    if CLIENT and FTBase.Runtime.Inspect then
-        return FTBase.Runtime.Inspect.Open(self)
+    if CLIENT and FTBase.Runtime.Customization then
+        return FTBase.Runtime.Customization.Open(self)
     end
 
     return false

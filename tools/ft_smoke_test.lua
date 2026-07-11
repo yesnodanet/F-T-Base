@@ -39,6 +39,21 @@ TFA.AttachmentDefinitions = {
 assert(tfa.ir.damage.base == 31, "TFA damage mapping failed")
 assert(tfa.ir.ammo.clipSize == 30, "TFA ammo mapping failed")
 assert(#tfa.ir.attachments.slots == 1, "TFA attachment mapping failed")
+assert(tfa.ir.ui.customization.provider == "tfa", "TFA customization provider failed")
+
+local pose = compile("ft_vector_literal", [[
+using "TFA"
+TFA.IronSightsPos = Vector(1, 2, 3)
+TFA.IronSightsAng = Angle(4, 5, 6)
+]])
+
+if Vector and Angle then
+    assert(type(pose.ir.ads.pos) ~= "table", "Vector literal was not normalized")
+    assert(type(pose.ir.ads.ang) ~= "table", "Angle literal was not normalized")
+else
+    assert(pose.ir.ads.pos.__type == "Vector", "Vector literal AST was lost")
+    assert(pose.ir.ads.ang.__type == "Angle", "Angle literal AST was lost")
+end
 
 local swb = compile("ft_swb_template", [[
 using "SWB"
@@ -57,6 +72,7 @@ SWB.RecoilPattern = {
 assert(swb.ir.damage.base == 26, "SWB damage mapping failed")
 assert(swb.ir.fire.delay == 0.075, "SWB fire delay mapping failed")
 assert(#swb.ir.recoil.pattern == 2, "SWB recoil mapping failed")
+assert(swb.ir.ui.customization.provider == "swb", "SWB customization provider failed")
 
 local mw = compile("ft_mw_template", [[
 using "MW"
@@ -86,6 +102,9 @@ MW.Attachments = {
 
 assert(mw.ir.damage.minimum == 22, "MW minimum damage mapping failed")
 assert(mw.ir.animations.reloadDuration == 2.05, "MW reload mapping failed")
+assert(#mw.ir.attachments.slots == 1, "MW nested attachment slots failed")
+assert(mw.ir.attachments.definitions.long_barrel ~= nil, "MW nested attachment definitions failed")
+assert(mw.ir.ui.customization.provider == "mw", "MW customization provider failed")
 
 local recordedDamage = nil
 local bullet = FTBase.Runtime.Ballistics.BuildBullet({}, {
@@ -115,6 +134,7 @@ using "SWB"
 using "MW"
 
 FT.Priority = { "MW", "SWB", "TFA" }
+FT.Customization.Provider = "mixed"
 FT.Merge = {
     ["spread.ads"] = "minimum"
 }
@@ -131,6 +151,16 @@ MW.Camera.Shake = 0.22
 assert(mixed.ir.damage.base == 30, "Mixed damage mapping failed")
 assert(mixed.ir.fire.delay == 0.082, "Mixed fire delay mapping failed")
 assert(mixed.ir.camera.shake == 0.22, "Mixed camera mapping failed")
+assert(mixed.ir.ui.customization.provider == "mixed", "Mixed customization provider failed")
+
+local tfaProvider, tfaProviderId = FTBase.Runtime.Customization.GetProvider({ir = tfa.ir})
+local mwProvider, mwProviderId = FTBase.Runtime.Customization.GetProvider({ir = mw.ir})
+local mixedProvider, mixedProviderId = FTBase.Runtime.Customization.GetProvider({ir = mixed.ir})
+
+assert(tfaProviderId == "tfa" and tfaProvider.id == "tfa", "TFA provider registry failed")
+assert(mwProviderId == "mw" and mwProvider.id == "mw", "MW provider registry failed")
+assert(mixedProviderId == "mixed" and mixedProvider.id == "mixed", "Mixed provider registry failed")
+assert(mwProvider:BuildRequest("barrel", "long_barrel").attachmentId == "long_barrel", "Provider request API failed")
 
 local runtime = {
     ir = tfa.ir,

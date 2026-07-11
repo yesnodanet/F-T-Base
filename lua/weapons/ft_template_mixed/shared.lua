@@ -14,6 +14,7 @@ using "SWB"
 using "MW"
 
 FT.Priority = { "MW", "SWB", "TFA" }
+FT.Customization.Provider = "mixed"
 FT.Merge = {
     ["recoil.procedural.vertical"] = "maximum",
     ["spread.ads"] = "minimum"

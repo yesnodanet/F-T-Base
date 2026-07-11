@@ -216,6 +216,11 @@ function IR.New()
             inspect = {
                 enabled = true,
                 command = "ft_customize"
+            },
+            customization = {
+                provider = "ft",
+                source = nil,
+                openCommand = "ft_customize"
             }
         },
         runtime = {

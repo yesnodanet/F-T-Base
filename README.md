@@ -385,6 +385,10 @@ server-side and rebuild an effective IR without mutating the compiled source.
 See [`docs/WEAPON_TEMPLATES.md`](docs/WEAPON_TEMPLATES.md) for the template and
 attachment modifier API.
 
+Customization UI is selected from the compiled source style. TFA, SWB, MW, and
+mixed weapons receive their own F&T-native provider layout. Authors can force a
+provider with `FT.Customization.Provider = "TFA"` (or `SWB`, `MW`, `mixed`).
+
 ## Repository Layout
 
 ```text

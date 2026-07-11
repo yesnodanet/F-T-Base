@@ -232,8 +232,8 @@ function Engine.SecondaryAttack(swep)
     local owner = ownerOf(swep)
 
     if owner and owner.KeyDown and IN_USE and owner:KeyDown(IN_USE) then
-        if CLIENT and FTBase.Runtime.Inspect then
-            FTBase.Runtime.Inspect.Toggle(swep)
+        if CLIENT and FTBase.Runtime.Customization then
+            FTBase.Runtime.Customization.Open(swep)
         end
 
         return

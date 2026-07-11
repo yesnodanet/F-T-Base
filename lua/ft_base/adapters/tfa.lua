@@ -69,11 +69,13 @@ local rules = {
     ["Animations"] = { ir = "animations.base" },
     ["EventTable"] = { ir = "animations.events" },
     ["Attachments"] = { ir = "attachments.slots" },
-    ["AttachmentDefinitions"] = { ir = "attachments.definitions" }
+    ["AttachmentDefinitions"] = { ir = "attachments.definitions" },
+    ["Customization.Provider"] = { ir = "ui.customization.provider", transform = function() return "tfa" end }
 }
 
 FTBase.Adapters.TFA = FTBase.Adapters.Make({
     Name = "TFA",
+    Provider = "tfa",
     Aliases = {"TFA_BASE"},
     Rules = rules
 })

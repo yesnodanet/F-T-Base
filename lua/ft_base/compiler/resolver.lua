@@ -25,6 +25,24 @@ local function makeRank(priority)
     return rank
 end
 
+local validProviders = {
+    ft = true,
+    tfa = true,
+    swb = true,
+    mw = true,
+    mixed = true
+}
+
+local function normalizeProvider(provider)
+    provider = string.lower(tostring(provider or ""))
+
+    if validProviders[provider] then
+        return provider
+    end
+
+    return nil
+end
+
 local Context = {}
 Context.__index = Context
 
@@ -88,7 +106,8 @@ end
 local function readConfig(ast, report)
     local config = {
         priority = {},
-        merge = {}
+        merge = {},
+        customizationProvider = nil
     }
 
     for _, node in ipairs(ast.body or {}) do
@@ -109,6 +128,8 @@ local function readConfig(ast, report)
                     config.priority = Table.DeepCopy(node.value)
                 elseif joined == "Merge" and type(node.value) == "table" then
                     config.merge = Table.DeepCopy(node.value)
+                elseif joined == "Customization.Provider" then
+                    config.customizationProvider = node.value
                 elseif Path.StartsWith(localPath, {"Merge"}) then
                     local mergePath = {}
 
@@ -139,7 +160,9 @@ local function isFTConfigPath(path)
         localPath[#localPath + 1] = path[index]
     end
 
-    return localPath[1] == "Priority" or localPath[1] == "Merge"
+    return localPath[1] == "Priority"
+        or localPath[1] == "Merge"
+        or (localPath[1] == "Customization" and localPath[2] == "Provider")
 end
 
 local function importedAdapters(imports)
@@ -166,6 +189,59 @@ local function suggestAmbiguous(path, candidates)
 
     suggestions[#suggestions + 1] = "FT." .. joined
     return table.concat(suggestions, ", ")
+end
+
+local function chooseCustomizationProvider(ir, config, operations, report)
+    local explicit = normalizeProvider(config.customizationProvider)
+
+    if config.customizationProvider ~= nil and not explicit then
+        report:AddWarning(
+            "Unknown customization provider '" .. tostring(config.customizationProvider) .. "'; using mixed provider"
+        )
+    end
+
+    if explicit then
+        ir.ui.customization.provider = explicit
+        ir.ui.customization.source = "explicit"
+        return
+    end
+
+    local prioritized = config.priority[1]
+    local prioritizedAdapter = prioritized and Resolver.GetAdapter(prioritized)
+    local prioritizedProvider = prioritizedAdapter and normalizeProvider(prioritizedAdapter.Provider)
+
+    if prioritizedProvider then
+        ir.ui.customization.provider = prioritizedProvider
+        ir.ui.customization.source = prioritizedAdapter.Name
+        return
+    end
+
+    local providers = {}
+    local providerSources = {}
+
+    for _, operation in ipairs(operations or {}) do
+        local adapter = Resolver.GetAdapter(operation.source)
+        local provider = adapter and normalizeProvider(adapter.Provider)
+
+        if provider then
+            providers[provider] = true
+            providerSources[provider] = operation.source
+        end
+    end
+
+    local selected = nil
+
+    for provider in pairs(providers) do
+        if selected then
+            selected = "mixed"
+            break
+        end
+
+        selected = provider
+    end
+
+    ir.ui.customization.provider = selected or "ft"
+    ir.ui.customization.source = selected and providerSources[selected] or nil
 end
 
 function Resolver.Resolve(ast, options)
@@ -250,10 +326,15 @@ function Resolver.Resolve(ast, options)
 
     for _, operation in ipairs(context.operations) do
         FTBase.Merge.Apply(ir, operation, report)
+
+        ir.meta.sourceStyles[operation.source] = true
     end
 
     ir.developer.priority = Table.DeepCopy(config.priority)
     ir.developer.merge = Table.DeepCopy(config.merge)
+    ir.ui.customization.openCommand = ir.ui.customization.openCommand or "ft_customize"
+
+    chooseCustomizationProvider(ir, config, context.operations, report)
 
     FTBase.Validator.Validate(ir, report)
     FTBase.Optimizer.Optimize(ir, report)

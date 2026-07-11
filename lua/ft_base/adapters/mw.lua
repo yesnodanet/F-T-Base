@@ -79,11 +79,15 @@ local rules = {
     ["Effects.Muzzle"] = { ir = "effects.muzzle" },
     ["Effects.Tracer"] = { ir = "effects.tracer" },
     ["Animations"] = { ir = "animations.base" },
-    ["Attachments"] = { ir = "attachments.slots" }
+    ["Attachments"] = { ir = "attachments.slots" },
+    ["Attachments.Slots"] = { ir = "attachments.slots" },
+    ["Attachments.Definitions"] = { ir = "attachments.definitions" },
+    ["Customization.Provider"] = { ir = "ui.customization.provider", transform = function() return "mw" end }
 }
 
 FTBase.Adapters.MW = FTBase.Adapters.Make({
     Name = "MW",
+    Provider = "mw",
     Aliases = {"MWBase", "MW Base", "ModernWarfare"},
     Rules = rules
 })
