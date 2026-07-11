@@ -1,5 +1,7 @@
 # F&T Base
 
+[English](README.md) | [Русский](README.ru.md)
+
 **Familia & Tarka Base** is an original weapon development platform for
 Garry's Mod.
 
