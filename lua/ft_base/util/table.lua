@@ -30,6 +30,20 @@ function Table.IsArray(value)
     return max == count
 end
 
+function Table.IsPlainTable(value)
+    return type(value) == "table" and not value.__type and not Table.IsArray(value)
+end
+
+function Table.ArrayCopy(value)
+    local copy = {}
+
+    for index, item in ipairs(value or {}) do
+        copy[index] = Table.DeepCopy(item)
+    end
+
+    return copy
+end
+
 function Table.DeepCopy(value, seen)
     if type(value) ~= "table" then
         return value
@@ -100,6 +114,20 @@ function Table.MergeInto(target, source)
     return target
 end
 
+function Table.StructuralMerge(target, source)
+    target = target or {}
+
+    for key, value in pairs(source or {}) do
+        if Table.IsPlainTable(value) and Table.IsPlainTable(target[key]) then
+            Table.StructuralMerge(target[key], value)
+        else
+            target[key] = Table.DeepCopy(value)
+        end
+    end
+
+    return target
+end
+
 function Table.Keys(value)
     local keys = {}
 
@@ -150,7 +178,7 @@ function Table.FlattenLeaves(value, prefix, output)
     output = output or {}
     prefix = prefix or {}
 
-    if type(value) ~= "table" or Table.IsArray(value) then
+    if type(value) ~= "table" or not Table.IsPlainTable(value) then
         output[#output + 1] = {
             path = Table.DeepCopy(prefix),
             value = value
@@ -159,7 +187,8 @@ function Table.FlattenLeaves(value, prefix, output)
         return output
     end
 
-    for key, item in pairs(value) do
+    for _, key in ipairs(Table.Keys(value)) do
+        local item = value[key]
         local nextPrefix = Table.DeepCopy(prefix)
         nextPrefix[#nextPrefix + 1] = key
         Table.FlattenLeaves(item, nextPrefix, output)

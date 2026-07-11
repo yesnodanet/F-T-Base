@@ -17,23 +17,25 @@ The central idea is simple:
 
 ## Project Status
 
-This repository currently contains the first architectural implementation of the
-platform:
+This repository currently contains a playable vertical slice of the platform:
 
 - addon bootstrap and loader;
 - original lexer, parser, resolver, compiler, emitter;
 - F&T IR schema;
 - style adapters for `FT`, `TFA`, `ARC9`, `ArcCW`, `MW`, `TacRP`, and `SWB`;
 - validation, optimization, merge strategies, and compile reports;
-- modular weapon runtime;
+- modular weapon runtime with firing, timed reload, hitscan damage, recoil,
+  camera aiming, sound, animation dispatch, and movement modifiers;
 - base SWEP implementation;
 - mixed-dialect example weapon;
+- TFA, SWB, MW, and mixed-dialect spawnable templates;
+- server-validated attachments and an in-game inspect/customization panel;
 - standalone converter API;
 - developer-facing documentation.
 
-It is an early foundation, not a finished production weapon base yet. The shape
-is intentionally engine-like so that future work can add richer behavior without
-rewriting the core.
+It is an early but usable foundation, not a finished production weapon base yet.
+Advanced projectile physics, persistence, and deeper animation behavior remain
+extension points behind the existing IR contract.
 
 ## Why F&T Base Exists
 
@@ -217,8 +219,9 @@ The IR is designed to represent:
 - custom damage curves.
 
 The current runtime contains the first implementation layer for hitscan and
-projectile dispatch. More advanced physical simulation can be added behind the
-same IR contract.
+projectile dispatch. Hitscan weapons directly use compiled damage, pellets,
+spread, tracer, distance falloff, hitgroups, sound, recoil, and effects.
+More advanced physical simulation can be added behind the same IR contract.
 
 ## Precision Recoil
 
@@ -369,6 +372,19 @@ FT.Recoil.Pattern = {
 ]]
 ```
 
+## Playable Templates And Inspect
+
+The addon includes copy-ready, spawnable templates: `ft_template_tfa`,
+`ft_template_swb`, `ft_template_mw`, and `ft_template_mixed`. Each extends
+`ft_base`, declares its weapon through `SWEP.FTSource`, and runs without the
+external weapon base whose syntax it resembles.
+
+While holding an F&T weapon, run `ft_customize`, or hold Use and press
+secondary attack, to open the inspect panel. Attachment requests are validated
+server-side and rebuild an effective IR without mutating the compiled source.
+See [`docs/WEAPON_TEMPLATES.md`](docs/WEAPON_TEMPLATES.md) for the template and
+attachment modifier API.
+
 ## Repository Layout
 
 ```text
@@ -385,6 +401,10 @@ lua/
   weapons/
     ft_base/       Base SWEP
     ft_example_mixed/
+    ft_template_tfa/
+    ft_template_swb/
+    ft_template_mw/
+    ft_template_mixed/
 tools/
   ft_converter.lua
   ft_smoke_test.lua
@@ -393,6 +413,7 @@ docs/
   COMPILER.md
   IR_SCHEMA.md
   CONVERTER.md
+  WEAPON_TEMPLATES.md
 ```
 
 ## Development Smoke Test
@@ -424,7 +445,7 @@ Planned next steps:
 - richer Lua parsing coverage for legacy weapon files;
 - fuller mathematical conversion between styles;
 - advanced projectile simulation;
-- complete attachment UI and persistence;
+- per-player attachment persistence;
 - deeper animation layers and IK helpers;
 - networked customization state;
 - developer overlay and in-game profiler panels;
@@ -439,6 +460,7 @@ More details:
 - [`docs/COMPILER.md`](docs/COMPILER.md)
 - [`docs/IR_SCHEMA.md`](docs/IR_SCHEMA.md)
 - [`docs/CONVERTER.md`](docs/CONVERTER.md)
+- [`docs/WEAPON_TEMPLATES.md`](docs/WEAPON_TEMPLATES.md)
 
 ## Name
 

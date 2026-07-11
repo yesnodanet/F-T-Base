@@ -74,7 +74,7 @@ function Parser:ParsePath()
     local path = { token.value }
 
     while self:Match("symbol", ".") do
-        local segment = self:Match("identifier")
+        local segment = self:Match("identifier") or self:Match("number")
 
         if not segment then
             self:Error("Expected path segment")
@@ -127,6 +127,66 @@ function Parser:ParseCall(name)
         name = name,
         args = args
     }
+end
+
+function Parser:ParseValue()
+    if self:Match("symbol", "-") then
+        if self:Check("number") then
+            return -self:Advance().value
+        end
+
+        self:Error("Expected number after '-'")
+        return 0
+    end
+
+    if self:Match("symbol", "+") then
+        if self:Check("number") then
+            return self:Advance().value
+        end
+
+        self:Error("Expected number after '+'")
+        return 0
+    end
+
+    if self:Check("string") or self:Check("number") then
+        return self:Advance().value
+    end
+
+    if self:Match("symbol", "{") then
+        self.index = self.index - 1
+        return self:ParseTable()
+    end
+
+    if self:Check("identifier") then
+        local token = self:Advance()
+
+        if token.value == "true" then
+            return true
+        end
+
+        if token.value == "false" then
+            return false
+        end
+
+        if token.value == "nil" then
+            return {
+                __type = "Nil"
+            }
+        end
+
+        if self:Check("symbol", "(") then
+            return self:ParseCall(token.value)
+        end
+
+        return {
+            __type = "Symbol",
+            name = token.value
+        }
+    end
+
+    self:Error("Expected value")
+    self:Advance()
+    return nil
 end
 
 function Parser:ParseTableKey()
@@ -184,55 +244,6 @@ function Parser:ParseTable()
     end
 
     return result
-end
-
-function Parser:ParseValue()
-    if self:Match("symbol", "-") then
-        if self:Check("number") then
-            return -self:Advance().value
-        end
-
-        self:Error("Expected number after '-'")
-        return 0
-    end
-
-    if self:Check("string") or self:Check("number") then
-        return self:Advance().value
-    end
-
-    if self:Match("symbol", "{") then
-        self.index = self.index - 1
-        return self:ParseTable()
-    end
-
-    if self:Check("identifier") then
-        local token = self:Advance()
-
-        if token.value == "true" then
-            return true
-        end
-
-        if token.value == "false" then
-            return false
-        end
-
-        if token.value == "nil" then
-            return nil
-        end
-
-        if self:Check("symbol", "(") then
-            return self:ParseCall(token.value)
-        end
-
-        return {
-            __type = "Symbol",
-            name = token.value
-        }
-    end
-
-    self:Error("Expected value")
-    self:Advance()
-    return nil
 end
 
 function Parser:ParseUsing(token)

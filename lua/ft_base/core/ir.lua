@@ -132,6 +132,7 @@ function IR.New()
             events = {},
             curves = {},
             reloadStages = {},
+            reloadDuration = nil,
             inspect = nil,
             partialBody = {}
         },
@@ -211,7 +212,11 @@ function IR.New()
         },
         ui = {
             drawAmmo = true,
-            crosshair = true
+            crosshair = true,
+            inspect = {
+                enabled = true,
+                command = "ft_customize"
+            }
         },
         runtime = {
             compiledAt = 0,

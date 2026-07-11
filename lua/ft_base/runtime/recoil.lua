@@ -36,7 +36,7 @@ function Recoil.Next(ir, state, seed)
     state.shot = state.shot + 1
 
     local entry = FTBase.Util.Table.DeepCopy(patternEntry(ir, state.shot))
-    local scalar = state.scalar or 1
+    local scalar = ir.recoil.scalar or state.scalar or 1
     local randomness = entry.randomness or 0
 
     if randomness > 0 then

@@ -63,6 +63,10 @@ function Path.Set(root, path, value)
     local current = root
     local parts = Path.Split(path)
 
+    if #parts == 0 then
+        return root
+    end
+
     for index = 1, #parts - 1 do
         local key = parts[index]
 
@@ -78,7 +82,22 @@ function Path.Set(root, path, value)
 end
 
 function Path.Has(root, path)
-    return Path.Get(root, path) ~= nil
+    local current = root
+    local parts = Path.Split(path)
+
+    if #parts == 0 then
+        return false
+    end
+
+    for index = 1, #parts do
+        if type(current) ~= "table" or current[parts[index]] == nil then
+            return false
+        end
+
+        current = current[parts[index]]
+    end
+
+    return true
 end
 
 function Path.StartsWith(path, prefix)

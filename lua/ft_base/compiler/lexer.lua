@@ -12,6 +12,10 @@ local function isDigit(char)
     return char and string.match(char, "%d") ~= nil
 end
 
+local function isHexDigit(char)
+    return char and string.match(char, "[%da-fA-F]") ~= nil
+end
+
 local function isIdentifierStart(char)
     return char and string.match(char, "[A-Za-z_]") ~= nil
 end
@@ -117,14 +121,50 @@ function Lexer:ReadNumber()
     local column = self.column
     local value = {}
 
+    if self:Char() == "0" and (self:Char(1) == "x" or self:Char(1) == "X") then
+        value[#value + 1] = self:Advance()
+        value[#value + 1] = self:Advance()
+
+        while self.index <= #self.source and isHexDigit(self:Char()) do
+            value[#value + 1] = self:Advance()
+        end
+
+        self:Add("number", tonumber(table.concat(value)) or 0, line, column)
+        return
+    end
+
+    local hasDigits = false
+    local hasDot = false
+
     while self.index <= #self.source do
         local char = self:Char()
 
-        if not (isDigit(char) or char == ".") then
+        if isDigit(char) then
+            hasDigits = true
+        elseif char == "." and not hasDot then
+            hasDot = true
+        elseif (char == "e" or char == "E") and hasDigits then
+            value[#value + 1] = self:Advance()
+
+            if self:Char() == "+" or self:Char() == "-" then
+                value[#value + 1] = self:Advance()
+            end
+
+            while self.index <= #self.source and isDigit(self:Char()) do
+                value[#value + 1] = self:Advance()
+            end
+
+            break
+        else
             break
         end
 
         value[#value + 1] = self:Advance()
+    end
+
+    if not hasDigits then
+        self:Add("error", "Malformed number", line, column)
+        return
     end
 
     self:Add("number", tonumber(table.concat(value)) or 0, line, column)
@@ -143,12 +183,21 @@ function Lexer:ReadIdentifier()
 end
 
 function Lexer:Tokenize()
+    local previousIndex = 0
+
     while self.index <= #self.source do
         self:SkipWhitespace()
 
         if self.index > #self.source then
             break
         end
+
+        if self.index == previousIndex then
+            self:Add("error", "Lexer made no progress", self.line, self.column)
+            self:Advance()
+        end
+
+        previousIndex = self.index
 
         if self:SkipComment() then
             self:SkipWhitespace()

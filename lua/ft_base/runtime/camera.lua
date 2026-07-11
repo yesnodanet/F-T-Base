@@ -19,29 +19,31 @@ function Camera.NewState(ir)
     }
 end
 
-function Camera.AddImpulse(state, recoil)
+function Camera.AddImpulse(state, recoil, camera)
     if not state then
         return
     end
 
-    state.shake = state.shake + math.abs(recoil and recoil.vertical or 0) * (state.ir.shake or 0)
+    camera = camera or state.ir or {}
+    state.shake = state.shake + math.abs(recoil and recoil.vertical or 0) * (camera.shake or 0)
 end
 
-function Camera.Update(state, dt)
+function Camera.Update(state, dt, camera)
     if not state then
         return
     end
 
+    camera = camera or state.ir or {}
     state.shake = math.max(0, state.shake - dt * 8)
-    state.sway = (state.ir.sway or 0)
+    state.sway = camera.sway or 0
 
     if FTBase.Runtime.Physics then
         state.spring = FTBase.Runtime.Physics.SpringStep(
             state.spring,
             0,
             dt,
-            state.ir.spring and state.ir.spring.stiffness or 180,
-            state.ir.spring and state.ir.spring.damping or 22
+            camera.spring and camera.spring.stiffness or 180,
+            camera.spring and camera.spring.damping or 22
         )
     end
 end
@@ -53,10 +55,27 @@ function Camera.CalcView(runtime, ply, origin, angles, fov)
         return nil
     end
 
+    local ir = FTBase.Runtime.Attachments.GetEffectiveIR(runtime) or runtime.ir
+    local targetFov = fov
+
+    if runtime.aimFraction and ir.ads and type(ir.ads.fov) == "number" then
+        targetFov = FTBase.Util.Math.Lerp(runtime.aimFraction, fov, ir.ads.fov)
+    end
+
+    if angles and Angle then
+        local time = CurTime and CurTime() or os.clock()
+        local shake = state.shake or 0
+        local breathing = ir.camera and ir.camera.breathing or 0
+        local pitch = math.sin(time * 17) * shake + math.sin(time * 1.2) * breathing
+        local yaw = math.cos(time * 13) * shake * 0.6 + math.cos(time * 0.9) * breathing * 0.5
+
+        angles = Angle(angles.p + pitch, angles.y + yaw, angles.r)
+    end
+
     return {
         origin = origin,
         angles = angles,
-        fov = fov,
+        fov = targetFov,
         drawviewer = false
     }
 end

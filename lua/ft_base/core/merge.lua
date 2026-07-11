@@ -26,6 +26,20 @@ local function mergeValue(existing, incoming, strategy)
         return existing * incoming
     end
 
+    if strategy == "append" and type(existing) == "table" and type(incoming) == "table" then
+        local result = Table.ArrayCopy(existing)
+
+        for _, item in ipairs(incoming) do
+            result[#result + 1] = Table.DeepCopy(item)
+        end
+
+        return result
+    end
+
+    if strategy == "merge" and type(existing) == "table" and type(incoming) == "table" then
+        return Table.StructuralMerge(Table.DeepCopy(existing), incoming)
+    end
+
     if type(strategy) == "function" then
         return strategy(existing, incoming)
     end
@@ -44,7 +58,9 @@ function Merge.Apply(ir, operation, report)
         report:AddConflict(irPath, existing, operation.value, strategy, operation.source)
     end
 
-    if existing == nil then
+    if operation.value and type(operation.value) == "table" and operation.value.__type == "Nil" then
+        Path.Set(ir, irPath, nil)
+    elseif existing == nil then
         Path.Set(ir, irPath, Table.DeepCopy(operation.value))
     else
         Path.Set(ir, irPath, mergeValue(existing, operation.value, strategy))

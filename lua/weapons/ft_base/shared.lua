@@ -53,6 +53,32 @@ function SWEP:Think()
     return FTBase.Runtime.Engine.Think(self)
 end
 
+function SWEP:Move(ply, moveData)
+    if self.FTRuntime then
+        FTBase.Runtime.Movement.SetupMove(self.FTRuntime, ply, moveData)
+    end
+end
+
+function SWEP:CalcView(ply, origin, angles, fov)
+    if not self.FTRuntime then
+        return nil
+    end
+
+    return FTBase.Runtime.Camera.CalcView(self.FTRuntime, ply, origin, angles, fov)
+end
+
+function SWEP:FTOpenCustomization()
+    if CLIENT and FTBase.Runtime.Inspect then
+        return FTBase.Runtime.Inspect.Open(self)
+    end
+
+    return false
+end
+
+function SWEP:OnRemove()
+    FTBase.Runtime.Lifecycle.Remove(self)
+end
+
 function SWEP:CanPrimaryAttack()
     return FTBase.Runtime.Engine.CanPrimaryAttack(self, self.FTRuntime)
 end

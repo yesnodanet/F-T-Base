@@ -3,7 +3,7 @@ FTBase = FTBase or {}
 local FT = FTBase
 
 FT.Name = "F&T Base"
-FT.Version = "0.1.0"
+FT.Version = "0.2.0"
 FT.BootedAt = os.time()
 
 local function includeShared(path)
@@ -64,6 +64,7 @@ local files = {
     "ft_base/runtime/vehicles.lua",
     "ft_base/runtime/physics.lua",
     "ft_base/runtime/customization.lua",
+    "ft_base/runtime/inspect.lua",
     "ft_base/runtime/devtools.lua",
     "ft_base/runtime/engine.lua",
 

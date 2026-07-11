@@ -2,6 +2,22 @@ FTBase = FTBase or {}
 FTBase.Adapters = FTBase.Adapters or {}
 
 local function fireLayer(value)
+    if type(value) == "table" then
+        if value[1] and type(value[1]) == "table" then
+            return value
+        end
+
+        if value[1] then
+            local layers = {}
+
+            for _, sound in ipairs(value) do
+                layers[#layers + 1] = { sound = sound, role = "body" }
+            end
+
+            return layers
+        end
+    end
+
     return {
         { sound = value, role = "body" }
     }
@@ -10,8 +26,11 @@ end
 local rules = {
     ["PrintName"] = { ir = "meta.printName" },
     ["Category"] = { ir = "meta.category" },
+    ["Spawnable"] = { ir = "meta.spawnable" },
+    ["UseHands"] = { ir = "rendering.useHands" },
     ["ViewModel"] = { ir = "rendering.viewModel" },
     ["WorldModel"] = { ir = "rendering.worldModel" },
+    ["HoldType"] = { ir = "rendering.holdType" },
 
     ["Damage"] = { ir = "damage.base" },
     ["DamageMin"] = { ir = "damage.minimum" },
@@ -26,6 +45,7 @@ local rules = {
     ["FireDelay"] = { ir = "fire.delay" },
     ["Automatic"] = { ir = "fire.automatic" },
     ["ClipSize"] = { ir = "ammo.clipSize" },
+    ["DefaultClip"] = { ir = "ammo.defaultClip" },
     ["Ammo"] = { ir = "ammo.type" },
 
     ["Spread"] = { ir = "spread.hip" },
@@ -53,6 +73,8 @@ local rules = {
     ["Sound.IndoorTail"] = { ir = "sounds.fire.indoorTail" },
     ["Sound.OutdoorTail"] = { ir = "sounds.fire.outdoorTail" },
     ["Sound.Mechanical"] = { ir = "sounds.mechanical" },
+    ["Sound.Reload"] = { ir = "sounds.reload.reload" },
+    ["Reload.Duration"] = { ir = "animations.reloadDuration" },
 
     ["Effects.Muzzle"] = { ir = "effects.muzzle" },
     ["Effects.Tracer"] = { ir = "effects.tracer" },

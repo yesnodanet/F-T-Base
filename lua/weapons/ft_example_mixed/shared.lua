@@ -74,3 +74,5 @@ FT.Attachments.Slots = {
     }
 }
 ]]
+
+FTBase.Runtime.Lifecycle.PrepareDefinition(SWEP)

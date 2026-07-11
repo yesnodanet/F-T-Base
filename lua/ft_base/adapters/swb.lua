@@ -2,6 +2,22 @@ FTBase = FTBase or {}
 FTBase.Adapters = FTBase.Adapters or {}
 
 local function fireLayer(value)
+    if type(value) == "table" then
+        if value[1] and type(value[1]) == "table" then
+            return value
+        end
+
+        if value[1] then
+            local layers = {}
+
+            for _, sound in ipairs(value) do
+                layers[#layers + 1] = { sound = sound, role = "body" }
+            end
+
+            return layers
+        end
+    end
+
     return {
         { sound = value, role = "body" }
     }
@@ -20,6 +36,7 @@ local rules = {
     ["FireDelay"] = { ir = "fire.delay" },
     ["Automatic"] = { ir = "fire.automatic" },
     ["ClipSize"] = { ir = "ammo.clipSize" },
+    ["DefaultClip"] = { ir = "ammo.defaultClip" },
     ["Ammo"] = { ir = "ammo.type" },
 
     ["HipSpread"] = { ir = "spread.hip" },
@@ -33,6 +50,8 @@ local rules = {
     ["KickSide"] = { ir = "recoil.procedural.horizontal" },
 
     ["FireSound"] = { ir = "sounds.fire.layers", transform = fireLayer },
+    ["ReloadSound"] = { ir = "sounds.reload.reload" },
+    ["ReloadDuration"] = { ir = "animations.reloadDuration" },
     ["DistantSound"] = { ir = "sounds.fire.distant" },
     ["SuppressorSound"] = { ir = "sounds.fire.suppressed" },
     ["MuzzleEffect"] = { ir = "effects.muzzle" },
@@ -44,7 +63,8 @@ local rules = {
     ["SpeedDec"] = { ir = "movement.sightedSpeed" },
 
     ["Animations"] = { ir = "animations.base" },
-    ["Attachments"] = { ir = "attachments.slots" }
+    ["Attachments"] = { ir = "attachments.slots" },
+    ["AttachmentDefinitions"] = { ir = "attachments.definitions" }
 }
 
 FTBase.Adapters.SWB = FTBase.Adapters.Make({

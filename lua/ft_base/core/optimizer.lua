@@ -8,11 +8,11 @@ local function resolveLiteral(value)
     end
 
     if value.__type == "Symbol" then
-        if _G and _G[value.name] ~= nil then
-            return _G[value.name]
-        end
+        return value
+    end
 
-        return value.name
+    if value.__type == "Nil" then
+        return nil
     end
 
     if value.__type == "Vector" or value.__type == "Angle" then
@@ -86,6 +86,18 @@ function Optimizer.Optimize(ir, report)
         ir.fire.delay = 60 / ir.fire.rpm
         report:AddOptimization("Computed fire.delay from fire.rpm")
     end
+
+    if type(ir.fire.modes) == "table" and #ir.fire.modes > 0 then
+        for index, mode in ipairs(ir.fire.modes) do
+            if type(mode) == "string" then
+                ir.fire.modes[index] = {
+                    mode = string.lower(mode),
+                    automatic = string.lower(mode) == "auto"
+                }
+            end
+        end
+    end
+
 
     if #ir.recoil.pattern > 80 then
         report:AddPerformanceSuggestion("Large recoil patterns should use interpolation or procedural segments")

@@ -2,6 +2,22 @@ FTBase = FTBase or {}
 FTBase.Adapters = FTBase.Adapters or {}
 
 local function fireLayer(value)
+    if type(value) == "table" then
+        if value[1] and type(value[1]) == "table" then
+            return value
+        end
+
+        if value[1] then
+            local layers = {}
+
+            for _, sound in ipairs(value) do
+                layers[#layers + 1] = { sound = sound, role = "body" }
+            end
+
+            return layers
+        end
+    end
+
     return {
         { sound = value, role = "body" }
     }
@@ -28,6 +44,8 @@ local rules = {
     ["Primary.DefaultClip"] = { ir = "ammo.defaultClip" },
     ["Primary.Ammo"] = { ir = "ammo.type" },
     ["Primary.Sound"] = { ir = "sounds.fire.layers", transform = fireLayer },
+    ["ReloadSound"] = { ir = "sounds.reload.reload" },
+    ["ReloadDuration"] = { ir = "animations.reloadDuration" },
 
     ["Secondary.IronFOV"] = { ir = "ads.fov" },
     ["IronSightsPos"] = { ir = "ads.pos" },
@@ -48,8 +66,10 @@ local rules = {
     ["IronSightsMoveSpeed"] = { ir = "movement.sightedSpeed" },
 
     ["SequenceLengthOverride"] = { ir = "animations.base", deprecated = "FT.Animations.Base" },
+    ["Animations"] = { ir = "animations.base" },
     ["EventTable"] = { ir = "animations.events" },
-    ["Attachments"] = { ir = "attachments.slots" }
+    ["Attachments"] = { ir = "attachments.slots" },
+    ["AttachmentDefinitions"] = { ir = "attachments.definitions" }
 }
 
 FTBase.Adapters.TFA = FTBase.Adapters.Make({

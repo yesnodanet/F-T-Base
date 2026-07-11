@@ -4,7 +4,8 @@ FTBase.Runtime = FTBase.Runtime or {}
 local Movement = FTBase.Module.Define("Movement", {})
 
 function Movement.SpeedMultiplier(runtime)
-    local movement = runtime.ir.movement or {}
+    local ir = FTBase.Runtime.Attachments.GetEffectiveIR(runtime) or runtime.ir
+    local movement = ir.movement or {}
     local multiplier = movement.speed or 1
 
     if runtime.aiming then
