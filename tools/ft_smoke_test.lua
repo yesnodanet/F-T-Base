@@ -50,10 +50,24 @@ TFA.IronSightsAng = Angle(4, 5, 6)
 if Vector and Angle then
     assert(type(pose.ir.ads.pos) ~= "table", "Vector literal was not normalized")
     assert(type(pose.ir.ads.ang) ~= "table", "Angle literal was not normalized")
+
+    local position, angle = FTBase.Runtime.Rendering.GetAimPose(pose.ir)
+    assert(isvector(position), "ADS position is not a GMod Vector")
+    assert(isangle(angle), "ADS angle is not a GMod Angle")
 else
     assert(pose.ir.ads.pos.__type == "Vector", "Vector literal AST was lost")
     assert(pose.ir.ads.ang.__type == "Angle", "Angle literal AST was lost")
 end
+
+local invalidPosePosition, invalidPoseAngle = FTBase.Runtime.Rendering.GetAimPose({
+    ads = {
+        pos = {0, 0, 0},
+        ang = {0, 0, 0}
+    }
+})
+
+assert(invalidPosePosition == nil, "Invalid ADS position table was passed through")
+assert(invalidPoseAngle == nil, "Invalid ADS angle table was passed through")
 
 local swb = compile("ft_swb_template", [[
 using "SWB"
