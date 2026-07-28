@@ -15,6 +15,23 @@ local Domains = {
     "presentation"
 }
 
+-- A compiled IR normally carries the provider id directly.  Keep a small
+-- source-to-provider map as a runtime repair path for definitions compiled by
+-- an older client/server pair where `ui.visual.providers` was left at the FT
+-- defaults while provenance was still preserved.
+local SourceProviders = {
+    ft = "ft",
+    tfa = "tfa",
+    tfa_base = "tfa",
+    arc9 = "arc9",
+    arccw = "arccw",
+    arccw_base = "arccw",
+    mw = "mw",
+    modern_wokefare = "mw",
+    tacrp = "tacrp",
+    swb = "swb"
+}
+
 local function normalize(value)
     return string.lower(tostring(value or ""))
 end
@@ -29,6 +46,63 @@ local function nonEmpty(...)
     end
 
     return ""
+end
+
+local function providerFromSource(source)
+    return SourceProviders[normalize(source)]
+end
+
+local function isExplicitSource(source)
+    local value = normalize(source)
+    return value == "explicit" or string.find(value, "explicit", 1, true) ~= nil
+end
+
+local function inferProvider(runtime, domain, configured, source)
+    local ir = runtime and runtime.ir
+
+    -- Explicit FT.Visual.* and the legacy FT.Customization.Provider override
+    -- must remain authoritative, including an explicit request for `ft`.
+    if isExplicitSource(source) then
+        return configured
+    end
+
+    -- Provenance for this domain is more precise than a stale default value.
+    local provenanceProvider = providerFromSource(source)
+
+    if configured == "ft" and provenanceProvider then
+        return provenanceProvider
+    end
+
+    if configured ~= "ft" then
+        return configured
+    end
+
+    if not ir then
+        return configured
+    end
+
+    -- Prefer the declared priority when no domain origin is available. This
+    -- mirrors resolver precedence and keeps mixed weapons deterministic.
+    for _, prioritySource in ipairs(ir.developer and ir.developer.priority or {}) do
+        local provider = providerFromSource(prioritySource)
+
+        if provider and provider ~= "ft" then
+            return provider
+        end
+    end
+
+    -- Finally use stable source-style order as a compatibility fallback.
+    local styles = ir.meta and ir.meta.sourceStyles or {}
+
+    for _, style in ipairs(Table.Keys(styles)) do
+        local provider = providerFromSource(style)
+
+        if provider and provider ~= "ft" then
+            return provider
+        end
+    end
+
+    return configured
 end
 
 local function sortedSlots(runtime, provider)
@@ -247,8 +321,10 @@ local function configuredProvider(runtime, domain)
     local ui = ir and ir.ui or {}
     local visual = ui.visual or {}
     local providers = visual.providers or {}
+    local sources = visual.sources or {}
     local normalizedDomain = normalize(domain)
     local id = nil
+    local source = nil
 
     if type(providers) == "string" then
         id = providers
@@ -267,6 +343,19 @@ local function configuredProvider(runtime, domain)
         end
     end
 
+    if type(sources) == "table" then
+        source = sources[normalizedDomain]
+
+        if source == nil then
+            for _, key in ipairs(Table.Keys(sources)) do
+                if normalize(key) == normalizedDomain then
+                    source = sources[key]
+                    break
+                end
+            end
+        end
+    end
+
     if id == nil and normalizedDomain == "attachments" then
         id = ui.customization and ui.customization.provider
     end
@@ -275,7 +364,8 @@ local function configuredProvider(runtime, domain)
         id = type(providers) == "table" and providers.default or visual.default
     end
 
-    return normalize(id ~= "" and id or "ft")
+    id = normalize(id ~= "" and id or "ft")
+    return inferProvider(runtime, normalizedDomain, id, source)
 end
 
 function ProviderHost.GetProvider(runtime, domain)

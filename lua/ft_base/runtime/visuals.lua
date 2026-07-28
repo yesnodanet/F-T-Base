@@ -4,15 +4,55 @@ FTBase.Runtime = FTBase.Runtime or {}
 local Visuals = FTBase.Module.Define("Visuals", {})
 local Host = FTBase.Runtime.ProviderHost
 
+local RegisteredFonts = {
+    Default = true,
+    DermaDefault = true,
+    DermaDefaultBold = true,
+    DermaLarge = true,
+    DermaLargeBold = true,
+    Trebuchet18 = true,
+    Trebuchet19 = true,
+    Trebuchet20 = true,
+    Trebuchet22 = true,
+    Trebuchet24 = true,
+    Trebuchet32 = true
+}
+
 if CLIENT and surface and surface.CreateFont then
-    surface.CreateFont("FT_TFA_Inter", {font = "Inter", size = 22, weight = 500, antialias = true})
-    surface.CreateFont("FT_ARC9_Venryn", {font = "Venryn Sans", size = 22, weight = 600, antialias = true})
-    surface.CreateFont("FT_ArcCW_Bahnschrift", {font = "Bahnschrift", size = 22, weight = 500, antialias = true})
-    surface.CreateFont("FT_MW_8MM6Z", {font = "8MM6Z", size = 22, weight = 500, antialias = true})
-    surface.CreateFont("FT_TacRP_Myriad", {font = "Myriad Pro", size = 22, weight = 500, antialias = true})
-    surface.CreateFont("SWB_HUD48", {font = "Default", size = 48, weight = 700, antialias = true})
-    surface.CreateFont("SWB_HUD24", {font = "Default", size = 24, weight = 700, antialias = true})
-    surface.CreateFont("SWB_HUD16", {font = "Default", size = 16, weight = 700, antialias = true})
+    local function createFont(name, face, size, weight)
+        surface.CreateFont(name, {
+            font = face,
+            size = size,
+            weight = weight or 500,
+            antialias = true
+        })
+
+        RegisteredFonts[name] = true
+    end
+
+    createFont("FT_TFA_Inter", "Inter", 22, 500)
+    createFont("FT_TFA_Inter_16", "Inter", 16, 500)
+    createFont("FT_TFA_Inter_24", "Inter", 24, 600)
+    createFont("FT_TFA_Inter_32", "Inter", 32, 700)
+    createFont("FT_TFA_Inter_48", "Inter", 48, 700)
+    createFont("FT_ARC9_Venryn", "Venryn Sans", 22, 600)
+    createFont("FT_ARC9_Venryn_16", "Venryn Sans", 16, 500)
+    createFont("FT_ARC9_Venryn_24", "Venryn Sans", 24, 600)
+    createFont("FT_ArcCW_Bahnschrift", "Bahnschrift", 22, 500)
+    createFont("FT_ArcCW_Bahnschrift_16", "Bahnschrift", 16, 500)
+    createFont("FT_ArcCW_Bahnschrift_24", "Bahnschrift", 24, 600)
+    createFont("FT_MW_8MM6Z", "8MM6Z", 22, 500)
+    createFont("FT_MW_8MM6Z_16", "8MM6Z", 16, 500)
+    createFont("FT_MW_8MM6Z_24", "8MM6Z", 24, 600)
+    createFont("FT_MW_8MM6Z_48", "8MM6Z", 48, 700)
+    createFont("FT_TacRP_Myriad", "Myriad Pro", 22, 500)
+    createFont("FT_TacRP_Myriad_16", "Myriad Pro", 16, 500)
+    createFont("FT_TacRP_Myriad_24", "Myriad Pro", 24, 600)
+    createFont("FT_Default_24", "Default", 24, 600)
+    createFont("FT_Default_48", "Default", 48, 700)
+    createFont("SWB_HUD48", "Default", 48, 700)
+    createFont("SWB_HUD24", "Default", 24, 700)
+    createFont("SWB_HUD16", "Default", 16, 700)
 end
 
 local function nonEmpty(...)
@@ -37,9 +77,24 @@ local function color(value, fallback)
     return value
 end
 
+local function resolveFont(font, fallback)
+    font = type(font) == "string" and font or ""
+    fallback = fallback or "DermaDefault"
+
+    if font ~= "" and RegisteredFonts[font] then
+        return font
+    end
+
+    if RegisteredFonts[fallback] then
+        return fallback
+    end
+
+    return "DermaDefault"
+end
+
 local function drawText(text, font, x, y, textColor, xAlign, yAlign)
     if draw and draw.SimpleText then
-        draw.SimpleText(text, font or "DermaDefault", x, y, textColor, xAlign or TEXT_ALIGN_LEFT, yAlign or TEXT_ALIGN_TOP)
+        draw.SimpleText(text, resolveFont(font), x, y, textColor, xAlign or TEXT_ALIGN_LEFT, yAlign or TEXT_ALIGN_TOP)
     end
 end
 
@@ -161,7 +216,7 @@ local function drawMWHUD(provider, context)
 
     drawRect(width - 350, height - 126, 320, 96, panel)
     drawText(Visuals.GetDisplayName(context.ir, context.swep), provider.font, width - 328, height - 116, color({188, 196, 201, 255}))
-    drawText(string.format("%02d", math.max(0, context.clip)), "Trebuchet48", width - 328, height - 91, accent)
+    drawText(string.format("%02d", math.max(0, context.clip)), provider.ammoFont, width - 328, height - 91, accent)
     drawText("/ " .. tostring(context.reserve), "DermaDefaultBold", width - 188, height - 67, color({185, 192, 198, 255}))
     drawRect(width - 328, height - 39, 276, 2, color({55, 72, 80, 220}))
     drawRect(width - 328, height - 39, 276 * math.max(0, math.min(1, context.clip / math.max(1, context.ir.ammo.clipSize or 1))), 2, accent)
@@ -187,7 +242,7 @@ local function drawARC9HUD(provider, context)
     drawRect(30, height - 104, 268, 72, color({10, 23, 29, 220}))
     drawText("ARC9", "DermaDefaultBold", 48, height - 94, accent)
     drawText(Visuals.GetDisplayName(context.ir, context.swep), "DermaDefault", 48, height - 72, color({208, 230, 235, 255}))
-    drawText(tostring(context.clip) .. " / " .. tostring(context.reserve), "Trebuchet24", 48, height - 49, accent)
+    drawText(tostring(context.clip) .. " / " .. tostring(context.reserve), provider.ammoFont, 48, height - 49, accent)
     return true
 end
 
@@ -208,7 +263,7 @@ local function drawArcCWHUD(provider, context)
     end
 
     drawRect(width - 250, height - 90, 220, 54, color({0, 0, 0, 170}))
-    drawText(tostring(context.clip), "Trebuchet24", width - 232, height - 82, accent)
+    drawText(tostring(context.clip), provider.ammoFont, width - 232, height - 82, accent)
     drawText("/ " .. tostring(context.reserve), "DermaDefault", width - 175, height - 73, color({230, 230, 230, 230}))
     return true
 end
@@ -229,7 +284,7 @@ local function drawSWBHUD(provider, context)
         return true
     end
 
-    drawText(tostring(context.clip), "Trebuchet48", width - 84, height - 88, accent, TEXT_ALIGN_RIGHT)
+    drawText(tostring(context.clip), provider.ammoFont, width - 84, height - 88, accent, TEXT_ALIGN_RIGHT)
     drawText("/ " .. tostring(context.reserve), "DermaDefaultBold", width - 82, height - 49, accent, TEXT_ALIGN_RIGHT)
     drawRect(width - 222, height - 38, 136, 3, color({0, 0, 0, 210}))
     drawRect(width - 222, height - 38, 136 * math.max(0, math.min(1, context.clip / math.max(1, context.ir.ammo.clipSize or 1))), 3, accent)
@@ -299,6 +354,10 @@ function Visuals.GetContext(swep)
     return hudContext(swep)
 end
 
+function Visuals.ResolveFont(font, fallback)
+    return resolveFont(font, fallback)
+end
+
 function Visuals.ApplyPresentation(swep, runtime)
     local provider = Host.GetProvider(runtime, "presentation")
 
@@ -335,7 +394,7 @@ register("ft", {
     accent = {94, 190, 235, 255},
     muted = {20, 26, 32, 225},
     font = "DermaDefaultBold",
-    ammoFont = "Trebuchet24",
+    ammoFont = "FT_Default_24",
     hintFont = "DermaDefault",
     presentation = "neutral",
     stats = {
@@ -353,7 +412,7 @@ register("tfa", {
     accent = {239, 187, 61, 255},
     muted = {25, 27, 30, 230},
     font = "FT_TFA_Inter",
-    ammoFont = "Trebuchet48",
+    ammoFont = "FT_TFA_Inter_48",
     hintFont = "DermaDefault",
     presentation = "tfa",
     iconMaterial = "ft_base/providers/tfa/inspectionhud/selector_bar",
@@ -370,7 +429,7 @@ register("mw", {
     accent = {220, 137, 45, 255},
     muted = {17, 19, 21, 235},
     font = "FT_MW_8MM6Z",
-    ammoFont = "Trebuchet48",
+    ammoFont = "FT_MW_8MM6Z_48",
     hintFont = "DermaDefault",
     presentation = "mw",
     iconMaterial = "ft_base/providers/mw/mg/customizemenuopen",
@@ -403,7 +462,7 @@ register("arc9", {
     accent = {83, 196, 224, 255},
     muted = {15, 25, 31, 235},
     font = "FT_ARC9_Venryn",
-    ammoFont = "Trebuchet24",
+    ammoFont = "FT_ARC9_Venryn_24",
     hintFont = "DermaDefault",
     presentation = "arc9",
     iconMaterial = "ft_base/providers/arc9/ui/att.png",
@@ -420,7 +479,7 @@ register("arccw", {
     accent = {226, 153, 73, 255},
     muted = {31, 25, 19, 230},
     font = "FT_ArcCW_Bahnschrift",
-    ammoFont = "Trebuchet24",
+    ammoFont = "FT_ArcCW_Bahnschrift_24",
     hintFont = "DermaDefault",
     presentation = "arccw",
     iconMaterial = "ft_base/providers/arccw/hud/default.png",
@@ -437,7 +496,7 @@ register("tacrp", {
     accent = {202, 89, 80, 255},
     muted = {33, 20, 20, 235},
     font = "FT_TacRP_Myriad",
-    ammoFont = "Trebuchet24",
+    ammoFont = "FT_TacRP_Myriad_24",
     hintFont = "DermaDefault",
     presentation = "tacrp",
     iconMaterial = "ft_base/providers/tacrp/hud/news.png",

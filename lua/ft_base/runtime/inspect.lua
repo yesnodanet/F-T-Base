@@ -44,6 +44,76 @@ local function providerForDomain(runtime, domain)
     return FTBase.Runtime.Customization.GetProvider(runtime)
 end
 
+local function resolveFont(font, fallback)
+    if FTBase.Runtime.Visuals and FTBase.Runtime.Visuals.ResolveFont then
+        return FTBase.Runtime.Visuals.ResolveFont(font, fallback)
+    end
+
+    return font or fallback or "DermaDefault"
+end
+
+local function providerColor(provider, key, fallback)
+    local value = provider and provider[key] or fallback or {225, 230, 236, 255}
+
+    if Color then
+        return Color(value[1] or 225, value[2] or 230, value[3] or 236, value[4] or 255)
+    end
+
+    return value
+end
+
+local function styleButton(button, provider, frame)
+    if not button then
+        return
+    end
+
+    local accent = providerColor(provider, "accent")
+    local muted = providerColor(provider, "muted", {20, 26, 32, 225})
+    local font = resolveFont(provider and provider.font, "DermaDefaultBold")
+
+    if button.SetFont then
+        button:SetFont(font)
+    end
+
+    if button.SetTextColor then
+        button:SetTextColor(accent)
+    end
+
+    button.Paint = function(panel, width, height)
+        if not draw or not draw.RoundedBox then
+            return
+        end
+
+        local enabled = not panel.IsEnabled or panel:IsEnabled()
+        local hovered = panel.IsHovered and panel:IsHovered()
+        local background = enabled and (hovered and accent or muted) or Color(35, 35, 35, 180)
+        local foreground = enabled and (hovered and Color(10, 10, 10, 235) or accent) or Color(130, 130, 130, 200)
+
+        draw.RoundedBox(0, 0, 0, width, height, background)
+
+        if panel.SetTextColor then
+            panel:SetTextColor(foreground)
+        end
+    end
+
+    button.FTProvider = provider
+    button.FTInspectFrame = frame
+end
+
+local function stylePanel(panel, provider)
+    if not panel then
+        return
+    end
+
+    local muted = providerColor(provider, "muted", {20, 26, 32, 225})
+
+    panel.Paint = function(_, width, height)
+        if draw and draw.RoundedBox then
+            draw.RoundedBox(0, 0, 0, width, height, muted)
+        end
+    end
+end
+
 local function notifyProvidersClosed(frame)
     if not frame or frame.FTProvidersClosed then
         return
@@ -79,7 +149,7 @@ end
 local function createLabel(parent, text, font, textColor)
     local label = parent:Add("DLabel")
     label:SetText(text)
-    label:SetFont(font or "DermaDefault")
+    label:SetFont(resolveFont(font, "DermaDefault"))
     label:SetTextColor(textColor or Color(225, 230, 236))
     label:Dock(TOP)
     label:DockMargin(12, 6, 12, 0)
@@ -122,8 +192,8 @@ local function buildDetail(frame, slot)
         model:SetLookAt(Vector(lookAt[1] or 0, lookAt[2] or 0, lookAt[3] or 0))
     end
 
-    createLabel(detail, provider:GetSlotLabel(slot), "DermaLarge", accent)
-    createLabel(detail, definition and ("Installed: " .. provider:GetInstalledLabel(definition, installed)) or provider:GetInstalledLabel(nil), "DermaDefaultBold", accent)
+    createLabel(detail, provider:GetSlotLabel(slot), inspectStyle.font or "DermaLarge", accent)
+    createLabel(detail, definition and ("Installed: " .. provider:GetInstalledLabel(definition, installed)) or provider:GetInstalledLabel(nil), inspectStyle.font or "DermaDefaultBold", accent)
 
     if provider.id == "mixed" then
         createLabel(detail, "Source: " .. tostring(ir.ui.customization.source or "mixed"))
@@ -135,6 +205,7 @@ local function buildDetail(frame, slot)
     clear:SetTall(28)
     clear:SetText(provider.id == "mw" and "Remove from gunsmith" or "Remove attachment")
     clear:SetEnabled(installed ~= nil)
+    styleButton(clear, provider, frame)
     clear.DoClick = function()
         local request = provider.BuildAttachmentRequest
             and provider:BuildAttachmentRequest(slot.id, "")
@@ -149,6 +220,7 @@ local function buildDetail(frame, slot)
         button:SetTall(32)
         button:SetText(provider:GetOptionLabel(option))
         button:SetTooltip(provider:GetOptionDescription(option))
+        styleButton(button, provider, frame)
         button.DoClick = function()
             local request = provider.BuildAttachmentRequest
                 and provider:BuildAttachmentRequest(slot.id, option.id)
@@ -158,7 +230,7 @@ local function buildDetail(frame, slot)
     end
 
     if inspectStyle.showStats ~= false then
-        createLabel(detail, "Weapon statistics", "DermaLarge", accent)
+        createLabel(detail, "Weapon statistics", inspectStyle.font or "DermaLarge", accent)
 
         local stats = inspectData.stats or inspectStyle.stats
 
@@ -186,7 +258,7 @@ local function buildDetail(frame, slot)
     end
 
     if provider.id == "mw" then
-        createLabel(detail, "Gunsmith preview uses the selected attachment modifier before installation.", "DermaDefaultBold")
+        createLabel(detail, "Gunsmith preview uses the selected attachment modifier before installation.", inspectStyle.font or "DermaDefaultBold")
     end
 end
 
@@ -205,6 +277,8 @@ local function buildSlots(frame)
         button:DockMargin(8, 6, 8, 0)
         button:SetTall(42)
         button:SetText(provider:GetSlotLabel(slot) .. "\n" .. provider:GetInstalledLabel(definition, installed))
+        button.FTSlotId = slot.id
+        styleButton(button, provider, frame)
         button.DoClick = function()
             frame.FTSelectedSlot = slot.id
             buildDetail(frame, slot)
@@ -264,7 +338,7 @@ function Inspect.Open(swep, providerId)
     frame:SetTitle(title)
 
     if frame.lblTitle then
-        frame.lblTitle:SetFont(nonEmpty(shell.titleFont, "DermaDefaultBold"))
+        frame.lblTitle:SetFont(resolveFont(nonEmpty(shell.titleFont, inspectProvider.font), "DermaDefaultBold"))
 
         if shell.accent and Color then
             frame.lblTitle:SetTextColor(Color(
@@ -292,6 +366,8 @@ function Inspect.Open(swep, providerId)
     frame.FTWeapon = swep
     frame.FTProvider = provider
     frame.FTInspectProvider = inspectProvider
+    frame.FTAttachmentProviderId = provider and provider.id or "ft"
+    frame.FTInspectProviderId = inspectProvider and inspectProvider.id or "ft"
     frame.OnClose = function()
         notifyProvidersClosed(frame)
 
@@ -304,10 +380,12 @@ function Inspect.Open(swep, providerId)
     slots:Dock(LEFT)
     slots:SetWide(inspectProvider.sidebarWidth or 270)
     frame.FTSlots = slots
+    stylePanel(slots, inspectProvider)
 
     local detail = vgui.Create("DScrollPanel", frame)
     detail:Dock(FILL)
     frame.FTDetail = detail
+    stylePanel(detail, inspectProvider)
 
     Inspect.Active = frame
     if inspectProvider.Open then

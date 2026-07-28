@@ -93,6 +93,17 @@ assert(mixed.ir.ui.visual.providers.hud == "tfa", "Mixed HUD provider failed")
 assert(mixed.ir.ui.visual.providers.presentation == "tfa", "Mixed presentation provider failed")
 assert(mixed.ir.ui.visual.providers.attachments == "mw", "Mixed attachment provider failed")
 
+local legacyIR = FTBase.IR.New()
+legacyIR.meta.sourceStyles = {TFA = true}
+legacyIR.ui.visual.providers.hud = "ft"
+legacyIR.ui.visual.sources.hud = "TFA"
+assert(FTBase.Runtime.ProviderHost.GetProviderId({ir = legacyIR}, "hud") == "tfa",
+    "Runtime provenance fallback did not select TFA")
+
+legacyIR.ui.visual.sources.hud = "explicit"
+assert(FTBase.Runtime.ProviderHost.GetProviderId({ir = legacyIR}, "hud") == "ft",
+    "Explicit FT HUD provider was not preserved")
+
 print("F&T Base visual smoke test passed")
 
 return true
