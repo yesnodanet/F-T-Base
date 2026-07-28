@@ -135,7 +135,34 @@ function Table.Keys(value)
         keys[#keys + 1] = key
     end
 
+    local typeRank = {
+        number = 1,
+        string = 2,
+        boolean = 3
+    }
+
     table.sort(keys, function(left, right)
+        local leftType = type(left)
+        local rightType = type(right)
+        local leftRank = typeRank[leftType] or 4
+        local rightRank = typeRank[rightType] or 4
+
+        if leftRank ~= rightRank then
+            return leftRank < rightRank
+        end
+
+        if leftType == "number" and rightType == "number" then
+            return left < right
+        end
+
+        if leftType == "string" and rightType == "string" then
+            return left < right
+        end
+
+        if leftType == "boolean" and rightType == "boolean" then
+            return left == false and right == true
+        end
+
         return tostring(left) < tostring(right)
     end)
 

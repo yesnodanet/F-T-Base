@@ -1,0 +1,13 @@
+{
+    "schemaVersion":  1,
+    "workshopId":  "3734712166",
+    "workshopUrl":  "https://steamcommunity.com/sharedfiles/filedetails/?id=3734712166",
+    "title":  "[TacRP] Tactical RP Weapons (OFFICIAL)",
+    "sourceDirectory":  "tacrp_tactical_rp_weapons_official_3734712166",
+    "payloadFileCount":  3282,
+    "payloadBytes":  463011248,
+    "manifestAlgorithm":  "SHA-256",
+    "manifestFile":  "MANIFEST.sha256",
+    "manifestSha256":  "4b25ee4d76cb27e823fa69f50c23bc181b64157caaa6a84f357117949cc5d68c",
+    "isolation":  "Reference snapshot only; this directory is outside the Garry\u0027s Mod lua/ load tree."
+}

@@ -1,0 +1,30 @@
+{
+  "title": "[TacRP] Tactical RP Weapons (OFFICIAL)",
+  "type": "weapon",
+  "tags": [
+    "fun",
+    "roleplay"
+  ],
+  "ignore": [
+    "*.cmd",
+    "snowdoom_content.jpg",
+    "_workfolder/*",
+    "dz_ents.gif",
+    "arccw extra.png",
+    "arccw extra.jpg",
+    "*.bat",
+    "*.code-workspace",
+    ".gitattributes",
+    "tacrp_interops.jpg",
+    "*.log",
+    "arccw.jpg",
+    "workfolder/*",
+    "*.py",
+    "model credits.txt",
+    "*.md",
+    ".stuff for developers/*",
+    "_mokas notes/*",
+    "_developer/*",
+    "_work/*"
+  ]
+}

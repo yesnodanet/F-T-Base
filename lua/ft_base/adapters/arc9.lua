@@ -13,6 +13,17 @@ local rules = {
     ["Spawnable"] = { ir = "meta.spawnable" },
     ["ViewModel"] = { ir = "rendering.viewModel" },
     ["WorldModel"] = { ir = "rendering.worldModel" },
+    ["VModel"] = { ir = "rendering.viewModel" },
+    ["WModel"] = { ir = "rendering.worldModel" },
+    ["ViewModelFOV"] = { ir = "rendering.viewModelFOV" },
+    ["ViewModelFlip"] = { ir = "rendering.viewModelFlip" },
+    ["Bodygroups"] = { ir = "rendering.bodygroups" },
+    ["DefaultBodygroups"] = { ir = "rendering.bodygroups.default" },
+    ["DefaultSkin"] = { ir = "rendering.skins.default" },
+    ["Elements"] = { ir = "rendering.elements" },
+    ["ModelOffset"] = { ir = "rendering.modelOffsets" },
+    ["MuzzleAttachment"] = { ir = "rendering.muzzleAttachment" },
+    ["ShellAttachment"] = { ir = "rendering.shellAttachment" },
 
     ["DamageMax"] = { ir = "damage.base" },
     ["DamageMin"] = { ir = "damage.minimum" },
@@ -27,6 +38,7 @@ local rules = {
     ["Firemodes"] = { ir = "fire.modes" },
     ["Automatic"] = { ir = "fire.automatic" },
     ["ClipSize"] = { ir = "ammo.clipSize" },
+    ["DefaultClip"] = { ir = "ammo.defaultClip" },
     ["Ammo"] = { ir = "ammo.type" },
 
     ["Spread"] = { ir = "spread.hip" },
@@ -49,6 +61,17 @@ local rules = {
     ["VisualRecoilSide"] = { ir = "camera.microJitter" },
     ["Sway"] = { ir = "camera.sway" },
     ["FreeAimRadius"] = { ir = "camera.freeAim.radius" },
+    ["FreeAim"] = { ir = "camera.freeAim" },
+    ["CustomizePos"] = { ir = "camera.poses.customize.pos" },
+    ["CustomizeAng"] = { ir = "camera.poses.customize.ang" },
+    ["InspectPos"] = { ir = "camera.poses.inspect.pos" },
+    ["InspectAng"] = { ir = "camera.poses.inspect.ang" },
+    ["CustomizeAnimation"] = { ir = "ui.inspect.animation" },
+    ["InspectAnimation"] = { ir = "animations.inspect" },
+    ["Sight"] = { ir = "ads.scopes" },
+    ["Scope"] = { ir = "ads.scopes" },
+    ["DrawCrosshair"] = { ir = "ui.crosshair" },
+    ["DrawAmmo"] = { ir = "ui.drawAmmo" },
 
     ["ShootSound"] = { ir = "sounds.fire.layers", transform = fireLayer },
     ["DistantShootSound"] = { ir = "sounds.fire.distant" },
@@ -57,12 +80,18 @@ local rules = {
     ["ShellModel"] = { ir = "effects.shell" },
 
     ["Attachments"] = { ir = "attachments.slots" },
+    ["AttachmentDefinitions"] = { ir = "attachments.definitions" },
+    ["AttachmentElements"] = { ir = "attachments.elements" },
+    ["AttachmentIcons"] = { ir = "attachments.icons" },
+    ["AttachmentIcon"] = { ir = "attachments.icons" },
+    ["AttachmentModels"] = { ir = "attachments.visuals" },
     ["Animations"] = { ir = "animations.base" },
     ["Hook_TranslateAnimation"] = { ignore = "runtime hooks are not executed by adapters" }
 }
 
 FTBase.Adapters.ARC9 = FTBase.Adapters.Make({
     Name = "ARC9",
+    Provider = "arc9",
     Aliases = {"arc9"},
     Rules = rules
 })

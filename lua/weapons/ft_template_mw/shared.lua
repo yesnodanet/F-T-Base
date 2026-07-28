@@ -67,6 +67,11 @@ MW.Attachments = {
             name = "Red Dot Sight",
             description = "Tighter aiming spread and a focused sight picture.",
             type = "optic",
+            icon = "ft_base/providers/mw/mw_logo.png",
+            visuals = {
+                view = {model = "models/weapons/c_pistol.mdl", pos = Vector(2, 0, 1), scale = 0.22},
+                world = {model = "models/weapons/w_pistol.mdl", pos = Vector(2, 0, 1), scale = 0.22}
+            },
             modifiers = {
                 ["spread.ads"] = { multiply = 0.76 },
                 ["ads.fov"] = { add = -3 }
@@ -76,6 +81,10 @@ MW.Attachments = {
             name = "Long Barrel",
             description = "Better damage retention and less horizontal recoil.",
             type = "barrel",
+            visuals = {
+                view = {model = "models/props_c17/TrapPropeller_Engine.mdl", scale = 0.05},
+                world = {model = "models/props_c17/TrapPropeller_Engine.mdl", scale = 0.05}
+            },
             modifiers = {
                 ["damage.minimum"] = { add = 4 },
                 ["recoil.scalar"] = { multiply = 0.9 }

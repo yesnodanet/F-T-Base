@@ -55,6 +55,11 @@ TFA.AttachmentDefinitions = {
         name = "Reflex Sight",
         description = "Tighter aiming spread with a slightly narrower view.",
         type = "optic",
+        icon = "ft_base/providers/tfa/inspectionhud/qmark",
+        visuals = {
+            view = {model = "models/weapons/c_pistol.mdl", pos = Vector(2, 0, 1), scale = 0.22},
+            world = {model = "models/weapons/w_pistol.mdl", pos = Vector(2, 0, 1), scale = 0.22}
+        },
         modifiers = {
             ["spread.ads"] = { multiply = 0.78 },
             ["ads.fov"] = { add = -4 }
@@ -64,6 +69,10 @@ TFA.AttachmentDefinitions = {
         name = "Compensator",
         description = "Reduces vertical recoil at the cost of hip-fire spread.",
         type = "muzzle",
+        visuals = {
+            view = {model = "models/props_c17/TrapPropeller_Engine.mdl", scale = 0.05},
+            world = {model = "models/props_c17/TrapPropeller_Engine.mdl", scale = 0.05}
+        },
         modifiers = {
             ["recoil.scalar"] = { multiply = 0.8 },
             ["spread.hip"] = { add = 0.002 }

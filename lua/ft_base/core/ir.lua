@@ -10,6 +10,13 @@ function IR.New()
             printName = "",
             category = "F&T Base",
             author = "",
+            description = "",
+            purpose = "",
+            manufacturer = "",
+            caliber = "",
+            country = "",
+            year = nil,
+            credits = {},
             spawnable = false,
             sourceStyles = {}
         },
@@ -34,6 +41,9 @@ function IR.New()
             delay = nil,
             automatic = false,
             burst = 0,
+            ammoPerShot = 1,
+            underwater = false,
+            drySound = nil,
             modes = {
                 { mode = "semi" }
             }
@@ -48,8 +58,12 @@ function IR.New()
             hip = 0,
             ads = 0,
             movement = 0,
+            crouch = 0,
+            jump = 0,
             perShot = 0,
-            recovery = 1
+            maximum = 0,
+            recovery = 1,
+            recoveryDelay = 0
         },
         ballistics = {
             mode = "hitscan",
@@ -116,13 +130,31 @@ function IR.New()
             },
             microJitter = 0,
             deadzone = 0,
-            aimTransition = 0.16
+            aimTransition = 0.16,
+            viewModelFOV = nil,
+            viewModelFlip = false,
+            poses = {
+                active = {},
+                crouch = {},
+                sprint = {},
+                holster = {},
+                customize = {},
+                inspect = {},
+                nearWall = {},
+                blindFire = {}
+            }
         },
         ads = {
             fov = 70,
             pos = nil,
             ang = nil,
-            speed = 1
+            speed = 1,
+            sensitivity = 1,
+            magnification = 1,
+            scopes = {},
+            reticle = nil,
+            overlay = nil,
+            hideWeapon = false
         },
         animations = {
             base = {},
@@ -142,7 +174,12 @@ function IR.New()
             nested = true,
             inheritance = {},
             dynamicModifiers = {},
-            customTypes = {}
+            customTypes = {},
+            dependencies = {},
+            exclusions = {},
+            elements = {},
+            icons = {},
+            visuals = {}
         },
         sounds = {
             fire = {
@@ -169,6 +206,14 @@ function IR.New()
             impact = {},
             tracer = nil,
             smoke = nil
+        },
+        melee = {
+            enabled = false,
+            damage = 0,
+            damageType = nil,
+            range = 0,
+            delay = 0,
+            secondary = {}
         },
         networking = {
             variables = {},
@@ -207,20 +252,43 @@ function IR.New()
             worldModel = nil,
             holdType = "ar2",
             useHands = true,
+            viewModelFOV = nil,
+            viewModelFlip = false,
             bodygroups = {},
-            skins = {}
+            skins = {},
+            materials = {},
+            elements = {},
+            modelOffsets = {},
+            muzzleAttachment = nil,
+            shellAttachment = nil
         },
         ui = {
             drawAmmo = true,
             crosshair = true,
             inspect = {
                 enabled = true,
-                command = "ft_customize"
+                command = "ft_customize",
+                pos = nil,
+                ang = nil,
+                animation = nil,
+                stats = {}
             },
             customization = {
                 provider = "ft",
                 source = nil,
                 openCommand = "ft_customize"
+            },
+            visual = {
+                providers = {
+                    inspect = "ft",
+                    attachments = "ft",
+                    hud = "ft",
+                    presentation = "ft"
+                },
+                sources = {},
+                hud = {},
+                customization = {},
+                presentation = {}
             }
         },
         runtime = {

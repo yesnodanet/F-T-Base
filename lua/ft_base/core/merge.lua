@@ -53,14 +53,17 @@ function Merge.Apply(ir, operation, report)
     local strategy = operation.strategy or "override"
 
     report._writtenPaths = report._writtenPaths or {}
+    local wasWritten = report._writtenPaths[irPath] == true
 
-    if report._writtenPaths[irPath] and existing ~= nil and not Table.DeepEqual(existing, operation.value) then
+    if wasWritten and not Table.DeepEqual(existing, operation.value) then
         report:AddConflict(irPath, existing, operation.value, strategy, operation.source)
     end
 
     if operation.value and type(operation.value) == "table" and operation.value.__type == "Nil" then
         Path.Set(ir, irPath, nil)
-    elseif existing == nil then
+    elseif not wasWritten then
+        -- IR defaults are fallback values, not merge operands.  The first
+        -- mapped value establishes the path regardless of strategy.
         Path.Set(ir, irPath, Table.DeepCopy(operation.value))
     else
         Path.Set(ir, irPath, mergeValue(existing, operation.value, strategy))

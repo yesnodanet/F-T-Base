@@ -31,6 +31,14 @@ local rules = {
     ["ViewModel"] = { ir = "rendering.viewModel" },
     ["WorldModel"] = { ir = "rendering.worldModel" },
     ["HoldType"] = { ir = "rendering.holdType" },
+    ["ViewModelFOV"] = { ir = "rendering.viewModelFOV" },
+    ["ViewModelFlip"] = { ir = "rendering.viewModelFlip" },
+    ["VModel"] = { ir = "rendering.viewModel" },
+    ["Bodygroups"] = { ir = "rendering.bodygroups" },
+    ["DefaultBodygroups"] = { ir = "rendering.bodygroups.default" },
+    ["DefaultSkin"] = { ir = "rendering.skins.default" },
+    ["Elements"] = { ir = "rendering.elements" },
+    ["ModelOffset"] = { ir = "rendering.modelOffsets" },
 
     ["Damage"] = { ir = "damage.base" },
     ["DamageMin"] = { ir = "damage.minimum" },
@@ -66,6 +74,18 @@ local rules = {
 
     ["Aim.FOV"] = { ir = "ads.fov" },
     ["Aim.Speed"] = { ir = "ads.speed" },
+    ["Aim.Pos"] = { ir = "ads.pos" },
+    ["Aim.Ang"] = { ir = "ads.ang" },
+    ["Aim.Scope"] = { ir = "ads.scopes" },
+    ["Zoom"] = { ir = "ads.scopes" },
+    ["CustomizePos"] = { ir = "camera.poses.customize.pos" },
+    ["CustomizeAng"] = { ir = "camera.poses.customize.ang" },
+    ["InspectPos"] = { ir = "camera.poses.inspect.pos" },
+    ["InspectAng"] = { ir = "camera.poses.inspect.ang" },
+    ["CustomizeAnimation"] = { ir = "ui.inspect.animation" },
+    ["InspectAnimation"] = { ir = "animations.inspect" },
+    ["DrawCrosshair"] = { ir = "ui.crosshair" },
+    ["DrawAmmo"] = { ir = "ui.drawAmmo" },
 
     ["Sound.Fire"] = { ir = "sounds.fire.layers", transform = fireLayer },
     ["Sound.FireDistant"] = { ir = "sounds.fire.distant" },
@@ -82,6 +102,11 @@ local rules = {
     ["Attachments"] = { ir = "attachments.slots" },
     ["Attachments.Slots"] = { ir = "attachments.slots" },
     ["Attachments.Definitions"] = { ir = "attachments.definitions" },
+    ["AttachmentElements"] = { ir = "attachments.elements" },
+    ["AttachmentIcons"] = { ir = "attachments.icons" },
+    ["AttachmentModels"] = { ir = "attachments.visuals" },
+    ["AttachmentDependencies"] = { ir = "attachments.dependencies" },
+    ["AttachmentExclusions"] = { ir = "attachments.exclusions" },
     ["Customization.Provider"] = { ir = "ui.customization.provider", transform = function() return "mw" end }
 }
 

@@ -30,7 +30,9 @@ local validProviders = {
     tfa = true,
     swb = true,
     mw = true,
-    mixed = true
+    arc9 = true,
+    arccw = true,
+    tacrp = true
 }
 
 local function normalizeProvider(provider)
@@ -89,6 +91,39 @@ function Resolver.GetAdapter(name)
     return FTBase.Compiler.AdapterAliases[normalizeNamespace(name)]
 end
 
+local function canonicalNamespaces(values, report, label)
+    local result = {}
+    local seen = {}
+
+    if values == nil then
+        return result
+    end
+
+    if type(values) ~= "table" or not Table.IsArray(values) then
+        report:AddError(tostring(label) .. " must be an array of namespace names")
+        return result
+    end
+
+    for index, namespace in ipairs(values) do
+        local adapter = type(namespace) == "string" and Resolver.GetAdapter(namespace) or nil
+
+        if not adapter then
+            report:AddError(
+                "Unknown namespace '" .. tostring(namespace) .. "' in " .. tostring(label) .. " at index " .. tostring(index)
+            )
+        else
+            local key = normalizeNamespace(adapter.Name)
+
+            if not seen[key] then
+                seen[key] = true
+                result[#result + 1] = adapter.Name
+            end
+        end
+    end
+
+    return result
+end
+
 local function stripSWEP(path)
     if path[1] == "SWEP" then
         local stripped = {}
@@ -107,7 +142,8 @@ local function readConfig(ast, report)
     local config = {
         priority = {},
         merge = {},
-        customizationProvider = nil
+        customizationProvider = nil,
+        visual = {}
     }
 
     for _, node in ipairs(ast.body or {}) do
@@ -123,14 +159,26 @@ local function readConfig(ast, report)
                 end
 
                 local joined = Path.Join(localPath)
+                local normalized = Path.LowerJoin(localPath)
 
-                if joined == "Priority" and type(node.value) == "table" then
-                    config.priority = Table.DeepCopy(node.value)
-                elseif joined == "Merge" and type(node.value) == "table" then
+                if normalized == "priority" then
+                    config.priority = canonicalNamespaces(node.value, report, "FT.Priority")
+                elseif normalized == "merge" and type(node.value) == "table" then
                     config.merge = Table.DeepCopy(node.value)
-                elseif joined == "Customization.Provider" then
+                elseif normalized == "merge" then
+                    report:AddError("FT.Merge must be a table", node)
+                elseif normalized == "customization.provider" then
                     config.customizationProvider = node.value
-                elseif Path.StartsWith(localPath, {"Merge"}) then
+                elseif string.sub(normalized, 1, 7) == "visual." then
+                    local domain = string.sub(normalized, 8)
+
+                    if domain == "default" or domain == "inspect" or domain == "attachments"
+                        or domain == "hud" or domain == "presentation" then
+                        config.visual[domain] = node.value
+                    else
+                        report:AddWarning("Unknown visual domain '" .. tostring(domain) .. "'")
+                    end
+                elseif string.sub(normalized, 1, 6) == "merge." then
                     local mergePath = {}
 
                     for index = 2, #localPath do
@@ -160,18 +208,24 @@ local function isFTConfigPath(path)
         localPath[#localPath + 1] = path[index]
     end
 
-    return localPath[1] == "Priority"
-        or localPath[1] == "Merge"
-        or (localPath[1] == "Customization" and localPath[2] == "Provider")
+    local joined = Path.LowerJoin(localPath)
+
+    return joined == "priority"
+        or joined == "merge"
+        or string.sub(joined, 1, 6) == "merge."
+        or joined == "customization.provider"
+        or string.sub(joined, 1, 7) == "visual."
 end
 
 local function importedAdapters(imports)
     local adapters = {}
+    local seen = {}
 
     for _, namespace in ipairs(imports or {}) do
         local adapter = Resolver.GetAdapter(namespace)
 
-        if adapter then
+        if adapter and not seen[normalizeNamespace(adapter.Name)] then
+            seen[normalizeNamespace(adapter.Name)] = true
             adapters[#adapters + 1] = adapter
         end
     end
@@ -191,57 +245,114 @@ local function suggestAmbiguous(path, candidates)
     return table.concat(suggestions, ", ")
 end
 
-local function chooseCustomizationProvider(ir, config, operations, report)
-    local explicit = normalizeProvider(config.customizationProvider)
+local function visualDomainForPath(irPath)
+    local path = Path.LowerJoin(irPath)
 
-    if config.customizationProvider ~= nil and not explicit then
-        report:AddWarning(
-            "Unknown customization provider '" .. tostring(config.customizationProvider) .. "'; using mixed provider"
-        )
+    local function isDomain(name)
+        return path == name or string.sub(path, 1, #name + 1) == name .. "."
     end
 
-    if explicit then
-        ir.ui.customization.provider = explicit
-        ir.ui.customization.source = "explicit"
-        return
+    if isDomain("attachments") then
+        return "attachments"
     end
 
-    local prioritized = config.priority[1]
-    local prioritizedAdapter = prioritized and Resolver.GetAdapter(prioritized)
-    local prioritizedProvider = prioritizedAdapter and normalizeProvider(prioritizedAdapter.Provider)
+    if isDomain("ui.inspect") or isDomain("animations.inspect") then
+        return "inspect"
+    end
+
+    if isDomain("ammo") or path == "ui.drawammo" or path == "ui.crosshair" then
+        return "hud"
+    end
+
+    if isDomain("rendering") or isDomain("ads") or isDomain("camera")
+        or isDomain("animations") or isDomain("effects") then
+        return "presentation"
+    end
+
+    return nil
+end
+
+local function providerForSource(source)
+    local adapter = Resolver.GetAdapter(source)
+    return adapter and normalizeProvider(adapter.Provider), adapter and adapter.Name
+end
+
+local function defaultVisualProvider(config, operations)
+    local prioritizedProvider, prioritizedSource = providerForSource(config.priority[1])
 
     if prioritizedProvider then
-        ir.ui.customization.provider = prioritizedProvider
-        ir.ui.customization.source = prioritizedAdapter.Name
-        return
+        return prioritizedProvider, prioritizedSource
+    end
+
+    for _, operation in ipairs(operations or {}) do
+        local provider, source = providerForSource(operation.source)
+
+        if provider then
+            return provider, source
+        end
+    end
+
+    return "ft", "FT"
+end
+
+local function chooseVisualProviders(ir, config, operations, origins, report)
+    local defaultProvider, defaultSource = defaultVisualProvider(config, operations)
+    local explicitDefault = normalizeProvider(config.visual.default)
+
+    if config.visual.default ~= nil and not explicitDefault then
+        report:AddWarning("Unknown visual provider '" .. tostring(config.visual.default) .. "' for Visual.Default")
+    end
+
+    if explicitDefault then
+        defaultProvider = explicitDefault
+        defaultSource = "explicit"
     end
 
     local providers = {}
-    local providerSources = {}
+    local sources = {}
 
-    for _, operation in ipairs(operations or {}) do
-        local adapter = Resolver.GetAdapter(operation.source)
-        local provider = adapter and normalizeProvider(adapter.Provider)
+    for _, domain in ipairs({"inspect", "attachments", "hud", "presentation"}) do
+        local provider = defaultProvider
+        local source = defaultSource
+        local explicit = normalizeProvider(config.visual[domain])
 
-        if provider then
-            providers[provider] = true
-            providerSources[provider] = operation.source
+        if config.visual[domain] ~= nil and not explicit then
+            report:AddWarning("Unknown visual provider '" .. tostring(config.visual[domain]) .. "' for Visual." .. domain)
+        end
+
+        if explicit then
+            provider = explicit
+            source = "explicit"
+        else
+            local origin = origins[domain]
+            local originProvider, originSource = origin and providerForSource(origin)
+
+            if originProvider then
+                provider = originProvider
+                source = originSource
+            end
+        end
+
+        providers[domain] = provider
+        sources[domain] = source
+    end
+
+    -- The old setting controls attachment presentation only. "mixed" now means auto-selection.
+    if config.customizationProvider ~= nil and string.lower(tostring(config.customizationProvider)) ~= "mixed" then
+        local legacy = normalizeProvider(config.customizationProvider)
+
+        if legacy then
+            providers.attachments = legacy
+            sources.attachments = "legacy explicit"
+        else
+            report:AddWarning("Unknown customization provider '" .. tostring(config.customizationProvider) .. "'")
         end
     end
 
-    local selected = nil
-
-    for provider in pairs(providers) do
-        if selected then
-            selected = "mixed"
-            break
-        end
-
-        selected = provider
-    end
-
-    ir.ui.customization.provider = selected or "ft"
-    ir.ui.customization.source = selected and providerSources[selected] or nil
+    ir.ui.visual.providers = providers
+    ir.ui.visual.sources = sources
+    ir.ui.customization.provider = providers.attachments
+    ir.ui.customization.source = sources.attachments
 end
 
 function Resolver.Resolve(ast, options)
@@ -249,7 +360,13 @@ function Resolver.Resolve(ast, options)
 
     local report = options.report or FTBase.Report.New("compile")
     local ir = FTBase.IR.New()
-    local imports = Table.DeepCopy(options.imports or {})
+    local imports = canonicalNamespaces(options.imports, report, "imports")
+    local imported = {}
+
+    for _, namespace in ipairs(imports) do
+        imported[normalizeNamespace(namespace)] = true
+    end
+
     local config = readConfig(ast, report)
     local context = Context.New(report, config)
 
@@ -258,7 +375,13 @@ function Resolver.Resolve(ast, options)
             local adapter = Resolver.GetAdapter(node.namespace)
 
             if adapter then
-                imports[#imports + 1] = adapter.Name
+                local key = normalizeNamespace(adapter.Name)
+
+                if not imported[key] then
+                    imported[key] = true
+                    imports[#imports + 1] = adapter.Name
+                end
+
                 ir.meta.sourceStyles[adapter.Name] = true
             else
                 report:AddError("Unknown namespace '" .. tostring(node.namespace) .. "'", node)
@@ -324,8 +447,24 @@ function Resolver.Resolve(ast, options)
         return leftRank < rightRank
     end)
 
+    local visualOrigins = {}
+    local visualContributors = {
+        inspect = {},
+        attachments = {},
+        hud = {},
+        presentation = {}
+    }
+
     for _, operation in ipairs(context.operations) do
+        local before = Table.DeepCopy(Path.Get(ir, operation.irPath))
         FTBase.Merge.Apply(ir, operation, report)
+
+        local domain = visualDomainForPath(operation.irPath)
+
+        if domain and not Table.DeepEqual(before, Path.Get(ir, operation.irPath)) then
+            visualOrigins[domain] = operation.source
+            visualContributors[domain][operation.source] = true
+        end
 
         ir.meta.sourceStyles[operation.source] = true
     end
@@ -334,10 +473,29 @@ function Resolver.Resolve(ast, options)
     ir.developer.merge = Table.DeepCopy(config.merge)
     ir.ui.customization.openCommand = ir.ui.customization.openCommand or "ft_customize"
 
-    chooseCustomizationProvider(ir, config, context.operations, report)
+    for _, domain in ipairs({"inspect", "attachments", "hud", "presentation"}) do
+        local contributors = visualContributors[domain]
+        local names = {}
+
+        for _, source in ipairs(Table.Keys(contributors)) do
+            names[#names + 1] = tostring(source)
+        end
+
+        if #names > 1 and config.visual[domain] == nil then
+            report:AddWarning(
+                "Visual domain '" .. domain .. "' receives values from multiple dialects: "
+                    .. table.concat(names, ", ") .. "; selected provider follows FT.Priority and final IR origin"
+            )
+        end
+    end
+
+    chooseVisualProviders(ir, config, context.operations, visualOrigins, report)
 
     FTBase.Validator.Validate(ir, report)
-    FTBase.Optimizer.Optimize(ir, report)
+
+    if not report:HasErrors() then
+        FTBase.Optimizer.Optimize(ir, report)
+    end
 
     return ir, report, context.operations
 end

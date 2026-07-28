@@ -59,6 +59,11 @@ SWB.AttachmentDefinitions = {
         name = "Holographic Sight",
         description = "Improves aimed precision.",
         type = "optic",
+        icon = "ft_base/providers/swb/rifle_aim",
+        visuals = {
+            view = {model = "models/weapons/c_pistol.mdl", pos = Vector(2, 0, 1), scale = 0.22},
+            world = {model = "models/weapons/w_pistol.mdl", pos = Vector(2, 0, 1), scale = 0.22}
+        },
         modifiers = {
             ["spread.ads"] = { multiply = 0.72 }
         }
@@ -67,6 +72,9 @@ SWB.AttachmentDefinitions = {
         name = "Light Stock",
         description = "Faster aim transition with less recoil recovery.",
         type = "stock",
+        visuals = {
+            world = {model = "models/props_c17/oildrum001.mdl", scale = 0.04}
+        },
         modifiers = {
             ["ads.speed"] = { multiply = 1.2 },
             ["recoil.scalar"] = { multiply = 0.9 }

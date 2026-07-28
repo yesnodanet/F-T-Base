@@ -1,10 +1,13 @@
 # Weapon Templates
 
-F&T Base ships four spawnable reference weapons under `lua/weapons/`:
+F&T Base ships seven spawnable reference weapons under `lua/weapons/`:
 
 - `ft_template_tfa` demonstrates the `TFA` dialect;
 - `ft_template_swb` demonstrates the `SWB` dialect;
 - `ft_template_mw` demonstrates the `MW` dialect;
+- `ft_template_arc9` demonstrates the `ARC9` dialect;
+- `ft_template_arccw` demonstrates the `ArcCW` dialect;
+- `ft_template_tacrp` demonstrates the `TacRP` dialect;
 - `ft_template_mixed` combines `TFA`, `SWB`, and `MW` in one source file.
 
 They are ordinary F&T weapons. Each one extends `ft_base`, declares a
@@ -66,34 +69,66 @@ MW.Attachments = {
 }
 ```
 
-While holding an F&T weapon, run `ft_customize`, or hold the Use key and press
-secondary attack. The client opens the inspect panel. Installation requests are
+While holding an F&T weapon, press the Context Menu key (`C`), run
+`ft_customize`, or hold the Use key and press secondary attack. The client opens
+the inspect panel. Installation requests are
 validated by the server against the weapon owner, slot, attachment id, and
 declared attachment type; the authoritative result is sent back to the client.
 
-## Customization Providers
+## Visual Providers
 
-The compiler writes the selected UI implementation to
-`ir.ui.customization.provider`. The available providers are:
+The compiler records an independent provider for `inspect`, `attachments`,
+`hud`, and `presentation` in `ir.ui.visual.providers`. The provider comes from
+the dialect whose effective operation owns the corresponding domain. This lets
+TFA control a weapon's inspect and HUD while MW controls only its attachment
+selection UI.
 
-- `ft`: neutral F&T layout;
-- `tfa`: category-oriented TFA attachment workflow;
-- `swb`: compact SWB slot workflow;
-- `mw`: MW-style gunsmith layout;
-- `mixed`: source-aware layout for weapons combining dialects.
-
-Provider selection is automatic for a single source style. Mixed weapons use
-the first `FT.Priority` style when it has a supported provider. Authors can
-force the implementation explicitly:
+The supported providers are `ft`, `tfa`, `swb`, `mw`, `arc9`, `arccw`, and
+`tacrp`. Authors can override a domain explicitly:
 
 ```lua
-FT.Customization.Provider = "TFA"
+FT.Visual.Default = "TFA"
+FT.Visual.Attachments = "MW"
 ```
 
-This selects the F&T-native TFA provider and does not require the external TFA
-base. The provider controls slot ordering, grouping, labels, descriptions,
-window layout, and request construction; attachment installation still uses
-the shared server-side IR validation path.
+`FT.Customization.Provider` remains a backward-compatible alias for the
+attachment domain. Its legacy `mixed` value enables automatic per-domain
+selection. Providers control layout, slot ordering, labels, preview framing,
+HUD styling, and request construction; attachment installation still uses the
+shared server-side IR validation path.
+
+The provider contract is `Open`, `Close`, `Refresh`, `HandleInput`, `DrawHUD`,
+`ApplyPresentation`, `GetSlots`, `GetOptions`, `GetInspectData`, and
+`BuildAttachmentRequest`. Its request result remains exactly
+`{slotId, attachmentId}`; providers cannot bypass the shared networking or
+server validation path.
+
+Attachment definitions may also provide namespaced UI and model presentation:
+
+```lua
+reflex = {
+    type = "optic",
+    icon = "ft_base/providers/tfa/inspectionhud/qmark",
+    visuals = {
+        view = {
+            model = "models/weapons/c_pistol.mdl",
+            bone = "ValveBiped.Bip01_R_Hand",
+            pos = Vector(2, 0, 1),
+            ang = Angle(0, 0, 0),
+            scale = 0.22,
+            bodygroups = {[0] = 1}
+        },
+        world = {
+            model = "models/weapons/w_pistol.mdl",
+            attachment = "muzzle"
+        }
+    }
+}
+```
+
+Clientside models are removed and rebuilt after install/uninstall and when the
+weapon is removed. Material, submaterial, skin, bodygroup, element, color, and
+scale overrides are applied from validated IR.
 
 Supported modifier forms are:
 
@@ -117,6 +152,9 @@ or inherit any external base.
 | `TFA` | `Primary.*`, `KickUp`, `RecoilInstructions`, `Animations`, `Attachments`, `AttachmentDefinitions` |
 | `SWB` | `Damage`, `FireDelay`, `HipSpread`, `AimSpread`, `RecoilPattern`, `Animations`, `Attachments`, `AttachmentDefinitions` |
 | `MW` | `Damage`, `DamageMin`, `RPM`, `Recoil.*`, `Camera.*`, `Aim.*`, `Sound.*`, `Reload.Duration`, `Attachments` |
+| `ARC9` | `DamageMax`, `DamageMin`, `RPM`, `ClipSize`, `AttachmentDefinitions` |
+| `ArcCW` | `Damage`, `RPM`, `Primary.*`, `AttachmentDefinitions` |
+| `TacRP` | `Damage_Max`, `RPM`, `ClipSize`, `AttachmentDefinitions` |
 
 For mixed weapons, use explicit namespaces for values that are intentionally
 drawn from a particular dialect. Set `FT.Priority` and `FT.Merge` whenever two

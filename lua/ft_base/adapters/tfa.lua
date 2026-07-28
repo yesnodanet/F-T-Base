@@ -30,6 +30,15 @@ local rules = {
     ["UseHands"] = { ir = "rendering.useHands" },
     ["ViewModel"] = { ir = "rendering.viewModel" },
     ["WorldModel"] = { ir = "rendering.worldModel" },
+    ["ViewModelFOV"] = { ir = "rendering.viewModelFOV" },
+    ["Secondary.ViewModelFOV"] = { ir = "rendering.viewModelFOV" },
+    ["ViewModelFlip"] = { ir = "rendering.viewModelFlip" },
+    ["Bodygroups_V"] = { ir = "rendering.bodygroups.view" },
+    ["Bodygroups_W"] = { ir = "rendering.bodygroups.world" },
+    ["VElements"] = { ir = "rendering.elements.view" },
+    ["WElements"] = { ir = "rendering.elements.world" },
+    ["VElementRenderOrder"] = { ir = "rendering.elements.viewOrder" },
+    ["WElementRenderOrder"] = { ir = "rendering.elements.worldOrder" },
     ["HoldType"] = { ir = "rendering.holdType" },
     ["DrawAmmo"] = { ir = "ui.drawAmmo" },
 
@@ -48,10 +57,16 @@ local rules = {
     ["ReloadDuration"] = { ir = "animations.reloadDuration" },
 
     ["Secondary.IronFOV"] = { ir = "ads.fov" },
+    ["Secondary.Scope"] = { ir = "ads.scopes" },
+    ["Scope"] = { ir = "ads.scopes" },
     ["IronSightsPos"] = { ir = "ads.pos" },
     ["IronSightsAng"] = { ir = "ads.ang" },
     ["RunSightsPos"] = { ir = "camera.sprint.pos" },
     ["RunSightsAng"] = { ir = "camera.sprint.ang" },
+    ["InspectPos"] = { ir = "camera.poses.inspect.pos" },
+    ["InspectAng"] = { ir = "camera.poses.inspect.ang" },
+    ["CustomizePos"] = { ir = "camera.poses.customize.pos" },
+    ["CustomizeAng"] = { ir = "camera.poses.customize.ang" },
 
     ["MuzzleFlashEffect"] = { ir = "effects.muzzle" },
     ["ShellAttachment"] = { ir = "effects.shell" },
@@ -68,8 +83,14 @@ local rules = {
     ["SequenceLengthOverride"] = { ir = "animations.base", deprecated = "FT.Animations.Base" },
     ["Animations"] = { ir = "animations.base" },
     ["EventTable"] = { ir = "animations.events" },
+    ["InspectAnimation"] = { ir = "animations.inspect" },
+    ["CustomizeAnimation"] = { ir = "ui.inspect.animation" },
     ["Attachments"] = { ir = "attachments.slots" },
     ["AttachmentDefinitions"] = { ir = "attachments.definitions" },
+    ["AttachmentDependencies"] = { ir = "attachments.dependencies" },
+    ["AttachmentExclusions"] = { ir = "attachments.exclusions" },
+    ["AttachmentIconOverride"] = { ir = "attachments.icons" },
+    ["AttachmentViewOffset"] = { ir = "attachments.visuals" },
     ["Customization.Provider"] = { ir = "ui.customization.provider", transform = function() return "tfa" end }
 }
 

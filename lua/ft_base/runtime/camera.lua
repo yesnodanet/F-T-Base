@@ -62,22 +62,25 @@ function Camera.CalcView(runtime, ply, origin, angles, fov)
         targetFov = FTBase.Util.Math.Lerp(runtime.aimFraction, fov, ir.ads.fov)
     end
 
-    if angles and Angle then
+    if angles and type(Angle) == "function" then
         local time = CurTime and CurTime() or os.clock()
         local shake = state.shake or 0
         local breathing = ir.camera and ir.camera.breathing or 0
         local pitch = math.sin(time * 17) * shake + math.sin(time * 1.2) * breathing
         local yaw = math.cos(time * 13) * shake * 0.6 + math.cos(time * 0.9) * breathing * 0.5
 
-        angles = Angle(angles.p + pitch, angles.y + yaw, angles.r)
+        local basePitch = angles.p
+        local baseYaw = angles.y
+        local baseRoll = angles.r
+
+        if type(basePitch) == "number" and type(baseYaw) == "number" and type(baseRoll) == "number" then
+            if pitch ~= 0 or yaw ~= 0 then
+                angles = Angle(basePitch + pitch, baseYaw + yaw, baseRoll)
+            end
+        end
     end
 
-    return {
-        origin = origin,
-        angles = angles,
-        fov = targetFov,
-        drawviewer = false
-    }
+    return origin, angles, targetFov
 end
 
 FTBase.Runtime.Camera = Camera

@@ -28,8 +28,9 @@ F&T Base не является клоном TFA, ARC9, ArcCW, MW Base, SWB ил�
   recoil, camera aiming, звуком, запуском анимаций и movement modifiers;
 - базовый SWEP;
 - пример оружия со смешанными dialect-стилями;
-- spawnable-шаблоны оружия в стилях TFA, SWB, MW и mixed dialect;
-- server-validated attachments и внутриигровой inspect/customization panel;
+- spawnable-шаблоны оружия в стилях TFA, SWB, MW, ARC9, ArcCW, TacRP и mixed dialect;
+- server-validated attachments, clientside attachment models и provider host с
+  отдельными доменами inspect, customization, HUD и presentation;
 - standalone API конвертера;
 - документацию для разработчиков.
 
@@ -376,20 +377,39 @@ FT.Recoil.Pattern = {
 ## Готовые шаблоны и осмотр
 
 В аддон добавлены copy-ready spawnable-шаблоны: `ft_template_tfa`,
-`ft_template_swb`, `ft_template_mw` и `ft_template_mixed`. Каждый наследуется
+`ft_template_swb`, `ft_template_mw`, `ft_template_arc9`, `ft_template_arccw`,
+`ft_template_tacrp` и `ft_template_mixed`. Каждый наследуется
 от `ft_base`, описывает оружие в `SWEP.FTSource` и работает без внешней базы,
 чей синтаксис использует.
 
-Удерживая F&T оружие, выполните `ft_customize` или удерживайте Use и нажмите
-secondary attack, чтобы открыть inspect panel. Запросы на установку attachments
+Удерживая F&T оружие, нажмите Context Menu (`C`) или выполните `ft_customize`;
+также поддерживается Use + secondary attack. Запросы на установку attachments
 проходят server-side validation и пересобирают effective IR, не меняя source IR.
 Поля шаблонов и API attachment modifiers описаны в
 [`docs/WEAPON_TEMPLATES.md`](docs/WEAPON_TEMPLATES.md).
 
-Customization UI выбирается из скомпилированного source style. Для TFA, SWB,
-MW и mixed weapons используются разные F&T-native provider layouts. Provider
-можно зафиксировать вручную: `FT.Customization.Provider = "TFA"` (также
-поддерживаются `SWB`, `MW` и `mixed`).
+Визуал выбирается независимо для доменов `inspect`, `attachments`, `hud` и
+`presentation`. Сначала учитывается явный `FT.Visual.*`, затем `FT.Priority`,
+источник итоговых данных домена и стабильный fallback F&T. Поэтому полностью
+TFA-оружие получает TFA-визуал во всех доменах, а в mixed-шаблоне MW отвечает
+за gunsmith, тогда как TFA отвечает за inspect, HUD и presentation. Конфликты
+между диалектами записываются в compile report.
+
+Домен можно зафиксировать явно:
+
+```lua
+FT.Visual.HUD = "TFA"
+FT.Visual.Attachments = "MW"
+```
+
+Поддерживаются `FT`, `TFA`, `MW`, `SWB`, `ARC9`, `ArcCW` и `TacRP`.
+`FT.Customization.Provider` остаётся алиасом для `FT.Visual.Attachments`, а
+legacy-значение `mixed` включает автоматический выбор по доменам. Провайдеры
+являются самостоятельными модулями F&T и не требуют внешние bases во время игры.
+Каждый провайдер реализует `Open`, `Close`, `Refresh`, `HandleInput`, `DrawHUD`,
+`ApplyPresentation`, `GetSlots`, `GetOptions`, `GetInspectData` и
+`BuildAttachmentRequest`. Namespaced-ресурсы находятся в
+`materials/ft_base/providers/`; оригинальные vendor autorun-файлы не запускаются.
 
 ## Структура репозитория
 
@@ -410,16 +430,22 @@ lua/
     ft_template_tfa/
     ft_template_swb/
     ft_template_mw/
+    ft_template_arc9/
+    ft_template_arccw/
+    ft_template_tacrp/
     ft_template_mixed/
 tools/
   ft_converter.lua
   ft_smoke_test.lua
+  vendor/          Deterministic snapshot import and verification
 docs/
   ARCHITECTURE.md
   COMPILER.md
   IR_SCHEMA.md
   CONVERTER.md
   WEAPON_TEMPLATES.md
+third_party/workshop/
+  <workshop-id>/   Изолированный raw snapshot и SHA-256 manifest
 ```
 
 ## Development smoke test
@@ -431,6 +457,18 @@ include("tools/ft_smoke_test.lua")
 ```
 
 Smoke test компилирует mixed-style source file и печатает compile report.
+
+Настройка dedicated-server и smoke test шести провайдеров описаны в
+[`docs/TEST_SERVER.md`](docs/TEST_SERVER.md).
+
+## Визуальные референсы
+
+Шесть предоставленных Workshop-пакетов сохранены как изолированные
+reference/vendor snapshots в `third_party/workshop/<id>/` и не входят в Lua
+load tree GMod. Небольшой атрибутированный набор UI-шрифтов и материалов
+скопирован в namespace F&T для активных провайдеров. Исходные Workshop ID,
+размеры, manifest digests, авторские credits и декларация публикации приведены
+в [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 
 ## Правила дизайна
 

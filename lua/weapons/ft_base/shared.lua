@@ -53,32 +53,32 @@ function SWEP:Think()
     FTBase.Runtime.Engine.Think(self)
 
     if CLIENT and FTBase.Runtime.Inspect and self.FTRuntime then
-        local owner = self.GetOwner and self:GetOwner()
-
-        if owner and owner == LocalPlayer() and owner.KeyDown then
-            if IN_USE and IN_RELOAD and owner:KeyDown(IN_USE) and owner:KeyDown(IN_RELOAD) then
-                self.FTNextCustomizeOpen = self.FTNextCustomizeOpen or 0
-
-                if CurTime() >= self.FTNextCustomizeOpen then
-                    self.FTNextCustomizeOpen = CurTime() + 0.5
-                    FTBase.Runtime.Inspect.Toggle(self)
-                end
-            end
-        end
+        FTBase.Runtime.Inspect.UpdateInput(self)
     end
 end
 
 function SWEP:DrawHUD()
-    if not CLIENT or not self.FTRuntime then
+    if not CLIENT or not self.FTRuntime or not FTBase.Runtime.Visuals then
         return
     end
 
-    if not draw or not ScrW or not ScrH then
-        return
+    FTBase.Runtime.Visuals.DrawHUD(self)
+end
+
+function SWEP:PostDrawViewModel(viewModel)
+    if CLIENT and self.FTRuntime and FTBase.Runtime.AttachmentVisuals then
+        FTBase.Runtime.AttachmentVisuals.DrawViewModel(self, viewModel)
+    end
+end
+
+function SWEP:DrawWorldModel()
+    if self.DrawModel then
+        self:DrawModel()
     end
 
-    local text = "F&T: hold USE + RELOAD to customize"
-    draw.SimpleText(text, "DermaDefault", ScrW() / 2, ScrH() - 96, Color(230, 235, 240), TEXT_ALIGN_CENTER, TEXT_ALIGN_CENTER)
+    if CLIENT and self.FTRuntime and FTBase.Runtime.AttachmentVisuals then
+        FTBase.Runtime.AttachmentVisuals.DrawWorldModel(self)
+    end
 end
 
 function SWEP:Move(ply, moveData)
@@ -103,6 +103,7 @@ function SWEP:GetViewModelPosition(position, angle)
     local ir = FTBase.Runtime.Attachments.GetEffectiveIR(self.FTRuntime) or self.FTRuntime.ir
     local aimPosition, aimAngle = FTBase.Runtime.Rendering.GetAimPose(ir)
     local fraction = self.FTRuntime.aimFraction or 0
+    local customizationFraction = self.FTRuntime.customizationFraction or 0
 
     if aimPosition and position then
         position = position + aimPosition * fraction
@@ -110,6 +111,21 @@ function SWEP:GetViewModelPosition(position, angle)
 
     if aimAngle and angle then
         angle = angle + aimAngle * fraction
+    end
+
+    if customizationFraction > 0 then
+        local poses = ir.camera and ir.camera.poses or {}
+        local pose = poses.customize or poses.inspect or {}
+        local posePosition = pose.pos or pose.position
+        local poseAngle = pose.ang or pose.angle
+
+        if posePosition and position then
+            position = position + posePosition * customizationFraction
+        end
+
+        if poseAngle and angle then
+            angle = angle + poseAngle * customizationFraction
+        end
     end
 
     return position, angle
@@ -138,7 +154,8 @@ function SWEP:GetNPCRestTimes()
         return 0.2, 0.5
     end
 
-    return FTBase.Runtime.NPC.GetRest(runtime.ir)
+    local ir = FTBase.Runtime.Attachments.GetEffectiveIR(runtime) or runtime.ir
+    return FTBase.Runtime.NPC.GetRest(ir)
 end
 
 function SWEP:GetNPCBurstSettings()
@@ -148,6 +165,7 @@ function SWEP:GetNPCBurstSettings()
         return 1, 3, 0.25
     end
 
-    local minimum, maximum = FTBase.Runtime.NPC.GetBurst(runtime.ir)
-    return minimum, maximum, runtime.ir.fire.delay or 0.1
+    local ir = FTBase.Runtime.Attachments.GetEffectiveIR(runtime) or runtime.ir
+    local minimum, maximum = FTBase.Runtime.NPC.GetBurst(ir)
+    return minimum, maximum, ir.fire.delay or 0.1
 end

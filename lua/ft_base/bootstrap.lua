@@ -5,6 +5,9 @@ local FT = FTBase
 FT.Name = "F&T Base"
 FT.Version = "0.3.0"
 FT.BootedAt = os.time()
+FT.Priority = FT.Priority or {}
+FT.Visual = FT.Visual or {}
+FT.Customization = FT.Customization or {}
 
 local function includeShared(path)
     if SERVER then
@@ -57,6 +60,7 @@ local files = {
     "ft_base/runtime/camera.lua",
     "ft_base/runtime/animation.lua",
     "ft_base/runtime/attachments.lua",
+    "ft_base/runtime/attachment_visuals.lua",
     "ft_base/runtime/sound.lua",
     "ft_base/runtime/movement.lua",
     "ft_base/runtime/effects.lua",
@@ -64,6 +68,8 @@ local files = {
     "ft_base/runtime/npc.lua",
     "ft_base/runtime/vehicles.lua",
     "ft_base/runtime/physics.lua",
+    "ft_base/runtime/provider_host.lua",
+    "ft_base/runtime/visuals.lua",
     "ft_base/runtime/customization.lua",
     "ft_base/runtime/inspect.lua",
     "ft_base/runtime/devtools.lua",

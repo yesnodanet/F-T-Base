@@ -46,30 +46,51 @@ function Lifecycle.Compile(swep)
 
     swep.FTCompileResult = result
     swep.FTIR = result.ir
+    swep.FTCompileFailed = result.report and result.report:HasErrors() or false
 
     return result
 end
 
 function Lifecycle.Initialize(swep)
+    if not swep then
+        return false
+    end
+
+    if swep.FTCompileFailed and swep.FTCompileResult then
+        swep.FTRuntime = nil
+        return false
+    end
+
     local result = swep.FTCompileResult or Lifecycle.Compile(swep)
 
+    if not result or not result.ir or not result.report or result.report:HasErrors() then
+        swep.FTCompileFailed = true
+        swep.FTRuntime = nil
+        return false
+    end
+
+    swep.FTCompileFailed = false
     configureSWEP(swep, result.ir)
     FTBase.Runtime.Engine.AttachSWEP(swep, result.ir, result.report)
 
     if swep.SetHoldType then
         swep:SetHoldType(FTBase.Runtime.Rendering.GetHoldType(result.ir))
     end
+
+    return swep.FTRuntime ~= nil
 end
 
 function Lifecycle.Deploy(swep)
     if not swep.FTRuntime then
-        Lifecycle.Initialize(swep)
+        if not Lifecycle.Initialize(swep) then
+            return false
+        end
     end
 
     FTBase.Runtime.Animation.Play(swep, swep.FTRuntime, "deploy")
 
     if SERVER and FTBase.Runtime.Networking then
-        FTBase.Runtime.Networking.SendAttachmentState(swep, swep:GetOwner())
+        FTBase.Runtime.Networking.SendAttachmentState(swep)
     end
 
     return true
@@ -91,6 +112,10 @@ end
 function Lifecycle.Remove(swep)
     if CLIENT and FTBase.Runtime.Inspect then
         FTBase.Runtime.Inspect.Close(swep)
+    end
+
+    if CLIENT and swep and swep.FTRuntime and FTBase.Runtime.AttachmentVisuals then
+        FTBase.Runtime.AttachmentVisuals.Cleanup(swep.FTRuntime)
     end
 end
 
