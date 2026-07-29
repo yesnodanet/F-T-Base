@@ -1,6 +1,8 @@
 FTBase = FTBase or {}
 FTBase.Adapters = FTBase.Adapters or {}
 
+local normalizeAttachmentMetadata = FTBase.Adapters.NormalizeAttachmentMetadata
+
 local function fireLayer(value)
     if type(value) == "table" then
         if value[1] and type(value[1]) == "table" then
@@ -26,6 +28,12 @@ end
 local rules = {
     ["PrintName"] = { ir = "meta.printName" },
     ["Category"] = { ir = "meta.category" },
+    ["SubCategory"] = { ir = "meta.subCategory" },
+    ["Author"] = { ir = "meta.author" },
+    ["Manufacturer"] = { ir = "meta.manufacturer" },
+    ["Caliber"] = { ir = "meta.caliber" },
+    ["Description"] = { ir = "ui.inspect.description", transform = function(value) return value end },
+    ["Credits"] = { ir = "ui.inspect.credits", transform = function(value) return value end },
     ["Spawnable"] = { ir = "meta.spawnable" },
     ["UseHands"] = { ir = "rendering.useHands" },
     ["ViewModel"] = { ir = "rendering.viewModel" },
@@ -99,14 +107,32 @@ local rules = {
     ["Effects.Muzzle"] = { ir = "effects.muzzle" },
     ["Effects.Tracer"] = { ir = "effects.tracer" },
     ["Animations"] = { ir = "animations.base" },
-    ["Attachments"] = { ir = "attachments.slots" },
-    ["Attachments.Slots"] = { ir = "attachments.slots" },
-    ["Attachments.Definitions"] = { ir = "attachments.definitions" },
-    ["AttachmentElements"] = { ir = "attachments.elements" },
-    ["AttachmentIcons"] = { ir = "attachments.icons" },
-    ["AttachmentModels"] = { ir = "attachments.visuals" },
+    ["Attachments"] = { ir = "attachments.slots", transform = normalizeAttachmentMetadata },
+    ["Attachments.Slots"] = { ir = "attachments.slots", transform = normalizeAttachmentMetadata },
+    ["Attachments.Definitions"] = { ir = "attachments.definitions", transform = normalizeAttachmentMetadata },
+    ["AttachmentDefinitions"] = { ir = "attachments.definitions", transform = normalizeAttachmentMetadata },
+    ["AttachmentElements"] = { ir = "attachments.elements", transform = normalizeAttachmentMetadata },
+    ["AttachmentIcons"] = { ir = "attachments.icons", transform = normalizeAttachmentMetadata },
+    ["AttachmentModels"] = { ir = "attachments.visuals", transform = normalizeAttachmentMetadata },
     ["AttachmentDependencies"] = { ir = "attachments.dependencies" },
     ["AttachmentExclusions"] = { ir = "attachments.exclusions" },
+    ["InspectTitle"] = { ir = "ui.inspect.title" },
+    ["InspectType"] = { ir = "ui.inspect.type" },
+    ["InspectDescription"] = { ir = "ui.inspect.description", transform = function(value) return value end },
+    ["InspectCredits"] = { ir = "ui.inspect.credits", transform = function(value) return value end },
+    ["InspectPreview"] = { ir = "ui.inspect.preview", transform = function(value) return value end },
+    ["InspectStats"] = { ir = "ui.inspect.stats", transform = function(value) return value end },
+    ["InspectFalloff"] = { ir = "ui.inspect.falloff", transform = function(value) return value end },
+    ["InspectHints"] = { ir = "ui.inspect.hints", transform = function(value) return value end },
+    ["InspectBlur"] = { ir = "ui.inspect.blur" },
+    ["HideHUD"] = { ir = "ui.inspect.hideHud" },
+    ["Customization.Title"] = { ir = "ui.customization.title" },
+    ["Customization.Presets"] = { ir = "ui.customization.presets", transform = function(value) return value end },
+    ["Customization.Controls"] = { ir = "ui.customization.controls", transform = function(value) return value end },
+    ["Customization.Stats"] = { ir = "ui.customization.stats", transform = function(value) return value end },
+    ["Customization.Hints"] = { ir = "ui.customization.hints", transform = function(value) return value end },
+    ["Customization.Preview"] = { ir = "ui.customization.preview", transform = function(value) return value end },
+    ["Customization.Animations"] = { ir = "ui.customization.animations", transform = function(value) return value end },
     ["Customization.Provider"] = { ir = "ui.customization.provider", transform = function() return "mw" end }
 }
 

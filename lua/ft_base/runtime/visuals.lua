@@ -15,9 +15,10 @@ local RegisteredFonts = {
     Trebuchet20 = true,
     Trebuchet22 = true,
     Trebuchet24 = true,
-    Trebuchet32 = true,
-    Trebuchet48 = true
+    Trebuchet32 = true
 }
+
+local Toolkit = FTBase.Runtime.UI and FTBase.Runtime.UI.Toolkit
 
 if CLIENT and surface and surface.CreateFont then
     local function createFont(name, face, size, weight)
@@ -29,6 +30,10 @@ if CLIENT and surface and surface.CreateFont then
         })
 
         RegisteredFonts[name] = true
+
+        if Toolkit and Toolkit.RegisterFont then
+            Toolkit.RegisterFont(name)
+        end
     end
 
     createFont("FT_TFA_Inter", "Inter", 22, 500)
@@ -36,7 +41,6 @@ if CLIENT and surface and surface.CreateFont then
     createFont("FT_TFA_Inter_24", "Inter", 24, 600)
     createFont("FT_TFA_Inter_32", "Inter", 32, 700)
     createFont("FT_TFA_Inter_48", "Inter", 48, 700)
-    createFont("Trebuchet48", "Trebuchet MS", 48, 700)
     createFont("FT_ARC9_Venryn", "Venryn Sans", 22, 600)
     createFont("FT_ARC9_Venryn_16", "Venryn Sans", 16, 500)
     createFont("FT_ARC9_Venryn_24", "Venryn Sans", 24, 600)
@@ -88,6 +92,10 @@ local function color(value, fallback)
 end
 
 local function resolveFont(font, fallback)
+    if Toolkit and Toolkit.ResolveFont then
+        return Toolkit.ResolveFont(font, fallback)
+    end
+
     font = type(font) == "string" and font or ""
     fallback = fallback or "DermaDefault"
 

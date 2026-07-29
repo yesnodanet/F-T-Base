@@ -1,6 +1,8 @@
 FTBase = FTBase or {}
 FTBase.Adapters = FTBase.Adapters or {}
 
+local normalizeAttachmentMetadata = FTBase.Adapters.NormalizeAttachmentMetadata
+
 local function fireLayer(value)
     return {
         { sound = value, role = "body" }
@@ -10,12 +12,19 @@ end
 local rules = {
     ["PrintName"] = { ir = "meta.printName" },
     ["Category"] = { ir = "meta.category" },
+    ["Author"] = { ir = "meta.author" },
+    ["Manufacturer"] = { ir = "meta.manufacturer" },
+    ["Caliber"] = { ir = "meta.caliber" },
+    ["Description"] = { ir = "ui.inspect.description", transform = function(value) return value end },
+    ["Credits"] = { ir = "ui.inspect.credits", transform = function(value) return value end },
     ["Spawnable"] = { ir = "meta.spawnable" },
     ["ViewModel"] = { ir = "rendering.viewModel" },
     ["WorldModel"] = { ir = "rendering.worldModel" },
+    ["WorldModelMirror"] = { ir = "rendering.worldModelMirror" },
     ["VModel"] = { ir = "rendering.viewModel" },
     ["WModel"] = { ir = "rendering.worldModel" },
     ["ViewModelFOV"] = { ir = "rendering.viewModelFOV" },
+    ["ViewModelFOVBase"] = { ir = "rendering.viewModelFOV" },
     ["ViewModelFlip"] = { ir = "rendering.viewModelFlip" },
     ["Bodygroups"] = { ir = "rendering.bodygroups" },
     ["DefaultBodygroups"] = { ir = "rendering.bodygroups.default" },
@@ -45,6 +54,7 @@ local rules = {
     ["SpreadMultSights"] = { ir = "spread.ads", merge = "multiply" },
     ["SpreadAddMove"] = { ir = "spread.movement" },
     ["SpreadAddRecoil"] = { ir = "spread.perShot" },
+    ["SpreadSights"] = { ir = "spread.ads" },
 
     ["Recoil.Up"] = { ir = "recoil.procedural.vertical" },
     ["Recoil.Side"] = { ir = "recoil.procedural.horizontal" },
@@ -64,6 +74,8 @@ local rules = {
     ["FreeAim"] = { ir = "camera.freeAim" },
     ["CustomizePos"] = { ir = "camera.poses.customize.pos" },
     ["CustomizeAng"] = { ir = "camera.poses.customize.ang" },
+    ["CustomizeSnapshotPos"] = { ir = "ui.customization.preview.pos" },
+    ["CustomizeSnapshotFOV"] = { ir = "ui.customization.preview.fov" },
     ["InspectPos"] = { ir = "camera.poses.inspect.pos" },
     ["InspectAng"] = { ir = "camera.poses.inspect.ang" },
     ["CustomizeAnimation"] = { ir = "ui.inspect.animation" },
@@ -79,12 +91,29 @@ local rules = {
     ["MuzzleParticle"] = { ir = "effects.muzzle" },
     ["ShellModel"] = { ir = "effects.shell" },
 
-    ["Attachments"] = { ir = "attachments.slots" },
-    ["AttachmentDefinitions"] = { ir = "attachments.definitions" },
-    ["AttachmentElements"] = { ir = "attachments.elements" },
-    ["AttachmentIcons"] = { ir = "attachments.icons" },
-    ["AttachmentIcon"] = { ir = "attachments.icons" },
-    ["AttachmentModels"] = { ir = "attachments.visuals" },
+    ["Attachments"] = { ir = "attachments.slots", transform = normalizeAttachmentMetadata },
+    ["AttachmentDefinitions"] = { ir = "attachments.definitions", transform = normalizeAttachmentMetadata },
+    ["AttachmentElements"] = { ir = "attachments.elements", transform = normalizeAttachmentMetadata },
+    ["AttachmentIcons"] = { ir = "attachments.icons", transform = normalizeAttachmentMetadata },
+    ["AttachmentIcon"] = { ir = "attachments.icons", transform = normalizeAttachmentMetadata },
+    ["AttachmentModels"] = { ir = "attachments.visuals", transform = normalizeAttachmentMetadata },
+    ["InspectTitle"] = { ir = "ui.inspect.title" },
+    ["InspectType"] = { ir = "ui.inspect.type" },
+    ["InspectDescription"] = { ir = "ui.inspect.description", transform = function(value) return value end },
+    ["InspectCredits"] = { ir = "ui.inspect.credits", transform = function(value) return value end },
+    ["InspectPreview"] = { ir = "ui.inspect.preview", transform = function(value) return value end },
+    ["InspectStats"] = { ir = "ui.inspect.stats", transform = function(value) return value end },
+    ["InspectFalloff"] = { ir = "ui.inspect.falloff", transform = function(value) return value end },
+    ["InspectHints"] = { ir = "ui.inspect.hints", transform = function(value) return value end },
+    ["InspectBlur"] = { ir = "ui.inspect.blur" },
+    ["HideHUD"] = { ir = "ui.inspect.hideHud" },
+    ["Customization.Title"] = { ir = "ui.customization.title" },
+    ["Customization.Presets"] = { ir = "ui.customization.presets", transform = function(value) return value end },
+    ["Customization.Controls"] = { ir = "ui.customization.controls", transform = function(value) return value end },
+    ["Customization.Stats"] = { ir = "ui.customization.stats", transform = function(value) return value end },
+    ["Customization.Hints"] = { ir = "ui.customization.hints", transform = function(value) return value end },
+    ["Customization.Preview"] = { ir = "ui.customization.preview", transform = function(value) return value end },
+    ["Customization.Animations"] = { ir = "ui.customization.animations", transform = function(value) return value end },
     ["Animations"] = { ir = "animations.base" },
     ["Hook_TranslateAnimation"] = { ignore = "runtime hooks are not executed by adapters" }
 }

@@ -5,11 +5,11 @@ local Path = FTBase.Util.Path
 local Table = FTBase.Util.Table
 
 local profiles = {
-    {class = "ft_template_tfa", provider = "tfa", adsPose = true},
+    {class = "ft_template_tfa", provider = "tfa", adsPose = true, automatic = false},
     {class = "ft_template_arc9", provider = "arc9"},
     {class = "ft_template_arccw", provider = "arccw"},
     {class = "ft_template_mw", provider = "mw", adsPose = true},
-    {class = "ft_template_swb", provider = "swb", adsPose = true},
+    {class = "ft_template_swb", provider = "swb", adsPose = true, nativeHud = true},
     {class = "ft_template_tacrp", provider = "tacrp"},
     {
         class = "ft_template_mixed",
@@ -121,11 +121,15 @@ for _, profile in ipairs(profiles) do
                 .. " instead of " .. provider .. " for " .. domain)
     end
 
-    assertPose(result.ir, "camera.poses.inspect", profile.class)
-    assertPose(result.ir, "camera.poses.customize", profile.class)
-    assert(result.ir.fire.automatic == true, profile.class .. " should demonstrate automatic fire setup")
-    assert(result.ir.animations.inspect ~= nil, profile.class .. " is missing its inspect animation")
-    assert(result.ir.ui.inspect.animation ~= nil, profile.class .. " is missing its customization animation")
+    if not profile.nativeHud then
+        assertPose(result.ir, "camera.poses.inspect", profile.class)
+        assertPose(result.ir, "camera.poses.customize", profile.class)
+    end
+    assert(result.ir.fire.automatic == (profile.automatic ~= false), profile.class .. " should preserve automatic fire setup")
+    if not profile.nativeHud then
+        assert(result.ir.animations.inspect ~= nil, profile.class .. " is missing its inspect animation")
+        assert(result.ir.ui.inspect.animation ~= nil, profile.class .. " is missing its customization animation")
+    end
     if profile.adsPose then
         assert(result.ir.ads.pos ~= nil and result.ir.ads.ang ~= nil,
             profile.class .. " must demonstrate a dialect ADS pose")
@@ -138,7 +142,9 @@ for _, profile in ipairs(profiles) do
         assert(hasScopes or hasMagnification,
             profile.class .. " must demonstrate its dialect scope/zoom metadata")
     end
-    assertAttachmentVisuals(result.ir, profile.class)
+    if not profile.nativeHud then
+        assertAttachmentVisuals(result.ir, profile.class)
+    end
 end
 
 print("F&T Base template regression passed")

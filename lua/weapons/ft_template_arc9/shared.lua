@@ -3,7 +3,7 @@ if SERVER then
 end
 
 SWEP.Base = "ft_base"
-SWEP.PrintName = "F&T Template - ARC9 Dialect"
+SWEP.PrintName = "F&T Template - ARC9 AK-47"
 SWEP.Category = "F&T Base Templates"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
@@ -13,108 +13,134 @@ using "ARC9"
 
 FT.Visual.Default = "ARC9"
 
-ARC9.PrintName = "F&T Template - ARC9 Dialect"
-ARC9.Category = "F&T Base Templates"
-ARC9.ViewModel = "models/weapons/c_irifle.mdl"
-ARC9.WorldModel = "models/weapons/w_irifle.mdl"
-ARC9.ViewModelFOV = 62
-ARC9.DefaultBodygroups = {[0] = 0}
-ARC9.DefaultSkin = 0
-ARC9.Elements = {
-    template_receiver = {skin = 0, bodygroups = {[0] = 0}}
-}
-ARC9.MuzzleAttachment = "muzzle"
-ARC9.DamageMax = 32
+ARC9.PrintName = "AK-47"
+ARC9.Category = "ARC9 - GS:R"
+ARC9.ViewModel = "models/weapons/csgo/c_rif_ak47.mdl"
+ARC9.WorldModel = "models/weapons/csgo/c_rif_ak47.mdl"
+ARC9.WorldModelMirror = "models/weapons/csgo/c_rif_ak47.mdl"
+ARC9.DefaultBodygroups = "000000"
+ARC9.ViewModelFOVBase = 56
+
+ARC9.DamageMax = 36
 ARC9.DamageMin = 20
-ARC9.RangeMax = 2300
-ARC9.RPM = 700
+ARC9.RangeMin = 1000
+ARC9.RangeMax = 4000
+ARC9.Penetration = 25
+ARC9.PhysBulletMuzzleVelocity = 28932
+ARC9.RPM = 600
 ARC9.Automatic = true
+ARC9.Firemodes = {
+    {Mode = 2},
+    {Mode = 1},
+    {Mode = 0}
+}
 ARC9.ClipSize = 30
 ARC9.DefaultClip = 120
-ARC9.Ammo = "AR2"
-ARC9.Spread = 0.012
-ARC9.SpreadMultSights = 0.45
-ARC9.SpreadAddMove = 0.009
-ARC9.RecoilUp = 0.82
-ARC9.RecoilSide = 0.18
-ARC9.VisualRecoilUp = 0.24
-ARC9.VisualRecoilSide = 0.05
-ARC9.Sway = 0.08
+ARC9.Ammo = "ar2"
+
+ARC9.Spread = 0
+ARC9.SpreadAddRecoil = 0.06
+ARC9.SpreadAddMove = 0.05
+ARC9.SpreadSights = 0
+ARC9.RecoilUp = 0.65
+ARC9.RecoilSide = 0.6
+ARC9.RecoilRandomUp = 0.3
+ARC9.RecoilRandomSide = 0.45
+ARC9.VisualRecoilUp = 2
+ARC9.VisualRecoilSide = -0.05
+ARC9.Sway = 0.2
 ARC9.FreeAimRadius = 0.35
 ARC9.Scope = {
-    type = "red_dot",
-    magnification = 1.2,
-    reticle = "ft_base/providers/arc9/ui/att.png",
-    hideWeapon = false
+    magnification = 1.1,
+    viewModelFOV = 56
 }
-ARC9.InspectPos = Vector(-2.2, 0, -0.3)
-ARC9.InspectAng = Angle(4, 22, 0)
-ARC9.CustomizePos = Vector(-3.6, 0, -0.8)
-ARC9.CustomizeAng = Angle(7, 34, 0)
+ARC9.CustomizePos = Vector(19, 45, 4)
+ARC9.CustomizeAng = Angle(90, 0, 0)
+ARC9.InspectPos = Vector(18, 42, 3)
+ARC9.InspectAng = Angle(84, 4, 0)
+ARC9.InspectAnimation = {sequence = "inspect"}
+ARC9.CustomizeAnimation = {sequence = "draw"}
+ARC9.CustomizeSnapshotPos = Vector(0, 30, 0)
+ARC9.CustomizeSnapshotFOV = 60
 ARC9.DrawCrosshair = true
 ARC9.DrawAmmo = true
-ARC9.ShootSound = "Weapon_AR2.Single"
+ARC9.ShootSound = "CSGO.AK47.Fire"
+ARC9.DistantShootSound = "CSGO.AK47.Distance_Fire"
+ARC9.MuzzleParticle = "weapon_muzzle_flash_assaultrifle"
+ARC9.ShellModel = "models/models/weapons/shared/shell_762_hr.mdl"
+
 ARC9.Animations = {
-    fire = ACT_VM_PRIMARYATTACK,
-    reload = ACT_VM_RELOAD,
-    deploy = ACT_VM_DRAW
+    fire = {Source = "shoot1"},
+    fire_sights = {Source = "shoot1_ads"},
+    reload = {Source = "reload"},
+    deploy = {Source = "draw"}
 }
-ARC9.InspectAnimation = ACT_VM_DRAW
-ARC9.CustomizeAnimation = ACT_VM_DRAW
+
+ARC9.AttachmentElements = {
+    csgo_ak47_stock_rpk = {Bodygroups = {{1, 1}}},
+    stock_none = {Bodygroups = {{1, 3}}},
+    csgo_ak47_stock_skeleton = {Bodygroups = {{1, 2}}},
+    topcover = {Bodygroups = {{2, 1}}},
+    csgo_ak47_barrel_long = {Bodygroups = {{3, 2}}},
+    csgo_ak47_barrel_short = {Bodygroups = {{3, 3}}},
+    csgo_ak47_barrel_tactical = {Bodygroups = {{3, 4}}},
+    csgo_ak47_mag_50 = {Bodygroups = {{4, 1}}},
+    csgo_ak47_mag_556 = {Bodygroups = {{4, 2}}},
+    csgo_ak47_mag_556_ext = {Bodygroups = {{4, 3}}},
+    csgo_ak47_mag_545 = {Bodygroups = {{4, 4}}},
+    csgo_ak47_mag_545_ext = {Bodygroups = {{4, 5}}},
+    mag_none = {Bodygroups = {{4, 6}}},
+    csgo_ak47_grip_tactical = {Bodygroups = {{5, 1}}},
+    csgo_rail_optic_2_alt = {AttPosMods = {[4] = {Pos = Vector(0.075, -4, 4.3)}}}
+}
+
 ARC9.Attachments = {
-    { id = "optic", name = "Optic", type = "optic", default = "micro_red_dot" },
-    { id = "underbarrel", name = "Underbarrel", type = "underbarrel", default = "vertical_grip" }
+    {id = "barrel", name = "Barrel", type = "go_ak47_barrel", default = "csgo_ak47_barrel_long"},
+    {id = "muzzle", name = "Muzzle", type = "muzzle"},
+    {id = "optics", name = "Optics", type = "csgo_optic"},
+    {id = "top", name = "Top Rail", type = "csgo_rail_optic_ak"},
+    {id = "side", name = "Side Rail", type = "csgo_rail_tac"},
+    {id = "underbarrel", name = "Underbarrel", type = "grip"},
+    {id = "stock", name = "Stock", type = "go_ak47_stock"},
+    {id = "mag", name = "Magazine", type = "go_mag_ak", default = "csgo_ak47_mag_50"},
+    {id = "pistolgrip", name = "Pistol Grip", type = "go_ak47_grip"},
+    {id = "ammo", name = "Ammo", type = "go_ammo"},
+    {id = "perk", name = "Perk", type = "go_perk"},
+    {id = "skins", name = "Skins", type = "go_skins_ak47"},
+    {id = "camo", name = "Camo", type = "universal_camo"},
+    {id = "charm", name = "Charm", type = "charm"}
 }
+
 ARC9.AttachmentDefinitions = {
-    micro_red_dot = {
-        name = "Micro Red Dot",
-        description = "A compact ARC9-style optic with a clean sight picture.",
-        type = "optic",
-        icon = "ft_base/providers/arc9/ui/att.png",
-        visuals = {
-            view = {
-                model = "models/weapons/c_pistol.mdl",
-                bone = "ValveBiped.Bip01_R_Hand",
-                pos = Vector(4.2, -1.4, 0.8),
-                ang = Angle(0, 90, 0),
-                scale = 0.18,
-                skin = 0,
-                bodygroups = {[0] = 0}
-            },
-            world = {
-                model = "models/weapons/w_pistol.mdl",
-                attachment = "muzzle",
-                pos = Vector(-10, 0, 2),
-                ang = Angle(0, 180, 0),
-                scale = 0.16,
-                materials = {[0] = "models/shiny"}
-            }
-        },
-        modifiers = { ["spread.ads"] = { multiply = 0.74 } }
+    csgo_ak47_barrel_long = {
+        name = "Long Barrel",
+        type = "barrel",
+        elements = {csgo_ak47_barrel_long = true}
     },
-    vertical_grip = {
-        name = "Vertical Grip",
-        description = "Stabilizes the weapon while preserving ARC9 handling.",
-        type = "underbarrel",
+    csgo_ak47_barrel_short = {
+        name = "Short Barrel",
+        type = "barrel",
+        elements = {csgo_ak47_barrel_short = true}
+    },
+    csgo_ak47_mag_50 = {
+        name = "50 Round Magazine",
+        type = "magazine",
+        elements = {csgo_ak47_mag_50 = true},
         visuals = {
             view = {
-                model = "models/props_c17/oildrum001.mdl",
-                bone = "ValveBiped.Bip01_R_Hand",
-                pos = Vector(7, 0, -3),
-                ang = Angle(90, 0, 0),
-                scale = 0.025,
-                material = "models/shiny"
+                model = "models/weapons/csgo/mags/w_rif_ak47_mag.mdl",
+                bone = "v_weapon.AK47_clip",
+                pos = Vector(0, 0, 0),
+                ang = Angle(0, 0, 0),
+                skin = 0
             },
             world = {
-                model = "models/props_c17/oildrum001.mdl",
+                model = "models/weapons/csgo/mags/w_rif_ak47_mag.mdl",
                 attachment = "muzzle",
-                pos = Vector(-7, 0, -2),
-                ang = Angle(90, 0, 0),
-                scale = 0.025,
-                elements = {skin = 0, bodygroups = {[0] = 0}}
+                pos = Vector(0, 0, 0),
+                ang = Angle(0, 0, 0)
             }
-        },
-        modifiers = { ["recoil.scalar"] = { multiply = 0.86 } }
+        }
     }
 }
 ]]

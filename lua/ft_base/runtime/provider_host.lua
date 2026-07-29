@@ -195,6 +195,36 @@ local function addDefaults(provider)
         return false
     end
 
+    -- UI composition belongs to the selected visual provider.  The host only
+    -- supplies a namespaced renderer fallback so custom providers can replace
+    -- it without reintroducing the old generic inspect shell.
+    provider.CreateUI = provider.CreateUI or function(self, context, root)
+        local ui = FTBase.Runtime.UI
+        local renderers = ui and ui.Renderers
+        local renderer = renderers and renderers.Get and renderers.Get(self.id)
+
+        if not renderer then
+            return false
+        end
+
+        context = context or {}
+        context.root = root or context.root
+        return renderer(context, root)
+    end
+
+    provider.CreateAttachmentSurface = provider.CreateAttachmentSurface or function(self, context, parent)
+        local ui = FTBase.Runtime.UI
+        local renderers = ui and ui.Renderers
+        local renderer = renderers and renderers.GetAttachmentSurface
+            and renderers.GetAttachmentSurface(self.id)
+
+        if not renderer then
+            return false
+        end
+
+        return renderer(context, parent)
+    end
+
     provider.GetSlots = provider.GetSlots or function(self, runtime)
         return sortedSlots(runtime, self)
     end
@@ -381,6 +411,14 @@ end
 function ProviderHost.BuildContext(swep, domain)
     local runtime = swep and swep.FTRuntime
     local ir = runtime and (runtime.effectiveIR or runtime.ir)
+
+    if FTBase.Runtime.UI and FTBase.Runtime.UI.Context
+        and FTBase.Runtime.UI.Context.New then
+        local inspectProvider = ProviderHost.GetProvider(runtime, "inspect")
+        local attachmentProvider = ProviderHost.GetProvider(runtime, "attachments")
+        return FTBase.Runtime.UI.Context.New(swep, runtime, domain,
+            nil, inspectProvider, attachmentProvider)
+    end
 
     return {
         swep = swep,

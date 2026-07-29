@@ -28,18 +28,38 @@ FT.Visual.Presentation = "TFA"
 
 TFA.PrintName = "F&T Mixed Dialect Rifle"
 TFA.Category = "F&T Base Examples"
-TFA.ViewModel = "models/weapons/c_irifle.mdl"
-TFA.WorldModel = "models/weapons/w_irifle.mdl"
+TFA.ViewModel = "models/weapons/tfa_ins2/c_cw_ar15.mdl"
+TFA.WorldModel = "models/weapons/tfa_ins2/w_cw_ar15.mdl"
 TFA.HoldType = "ar2"
 TFA.UseHands = true
 TFA.ViewModelFOV = 60
+TFA.Description = "Mixed example using the TFA AR-15 model with MW attachment controls."
+TFA.Credits = "TFA Insurgency sample / Modern Warfare 2019 Sweps"
 TFA.Bodygroups_V = {[0] = 0}
 TFA.Bodygroups_W = {[0] = 0}
 TFA.VElements = {
-    receiver = {skin = 0, bodygroups = {[0] = 0}}
+    receiver = {
+        type = "Model",
+        model = "models/weapons/tfa_ins2/upgrades/f_ar15_m4barrel.mdl",
+        bone = "Weapon",
+        pos = Vector(0, 0, 0.25),
+        angle = Angle(0, 0, 0),
+        size = Vector(1, 1, 1),
+        active = true,
+        bonemerge = false
+    }
 }
 TFA.WElements = {
-    receiver = {skin = 0, bodygroups = {[0] = 0}}
+    receiver = {
+        type = "Model",
+        model = "models/weapons/tfa_ins2/upgrades/w_ar15_30mag.mdl",
+        bone = "ATTACH_Standard",
+        pos = Vector(0, 0, 0),
+        angle = Angle(0, 0, 0),
+        size = Vector(1, 1, 1),
+        active = true,
+        bonemerge = true
+    }
 }
 TFA.Primary.Damage = 35
 TFA.Primary.ClipSize = 30
@@ -122,21 +142,17 @@ MW.Attachments = {
             icon = "ft_base/providers/mw/mw_logo.png",
             visuals = {
                 view = {
-                    model = "models/weapons/c_pistol.mdl",
-                    bone = "ValveBiped.Bip01_R_Hand",
-                    pos = Vector(5.5, -1.4, 2.6),
-                    ang = Angle(0, 90, 0),
-                    scale = 0.18,
-                    skin = 0,
-                    bodygroups = {[0] = 0},
-                    elements = {skin = 0, bodygroups = {[0] = 0}}
+                    model = "models/viper/mw/attachments/mike4/attachment_vm_ar_mike4_carryhandle.mdl",
+                    bone = "tag_sling",
+                    pos = Vector(0, 0, 0),
+                    ang = Angle(0, 0, 0),
+                    skin = 0
                 },
                 world = {
-                    model = "models/weapons/w_pistol.mdl",
+                    model = "models/viper/mw/attachments/mike4/attachment_vm_ar_mike4_carryhandle.mdl",
                     attachment = "muzzle",
-                    pos = Vector(-8, 0, 2),
-                    ang = Angle(0, 90, 0),
-                    scale = 0.18,
+                    pos = Vector(0, 0, 0),
+                    ang = Angle(0, 0, 0),
                     skin = 0
                 }
             },
@@ -153,21 +169,16 @@ MW.Attachments = {
             icon = "ft_base/providers/mw/mw_logo.png",
             visuals = {
                 view = {
-                    model = "models/items/battery.mdl",
-                    bone = "ValveBiped.Bip01_R_Hand",
-                    pos = Vector(5.8, -1.6, 2.7),
-                    ang = Angle(0, 90, 0),
-                    scale = 0.35,
-                    material = "models/shiny",
-                    color = {r = 150, g = 170, b = 180, a = 255}
+                    model = "models/viper/mw/attachments/mike4/attachment_vm_ar_mike4_carryhandle.mdl",
+                    bone = "tag_sling",
+                    pos = Vector(0, 0, 0),
+                    ang = Angle(0, 0, 0)
                 },
                 world = {
-                    model = "models/items/battery.mdl",
+                    model = "models/viper/mw/attachments/mike4/attachment_vm_ar_mike4_carryhandle.mdl",
                     attachment = "muzzle",
-                    pos = Vector(-8, 0, 2),
-                    ang = Angle(0, 90, 0),
-                    scale = 0.35,
-                    material = "models/shiny"
+                    pos = Vector(0, 0, 0),
+                    ang = Angle(0, 0, 0)
                 }
             },
             modifiers = {
@@ -183,21 +194,16 @@ MW.Attachments = {
             icon = "ft_base/providers/mw/mw_logo.png",
             visuals = {
                 view = {
-                    model = "models/props_c17/TrapPropeller_Engine.mdl",
-                    attachment = "muzzle",
-                    pos = Vector(2.5, 0, 0),
-                    ang = Angle(0, 90, 0),
-                    scale = 0.035,
-                    skin = 0,
-                    bodygroups = {[0] = 0}
+                    model = "models/viper/mw/attachments/mike4/attachment_vm_ar_mike4_barsil.mdl",
+                    bone = "tag_sling",
+                    pos = Vector(0, 0, 0),
+                    ang = Angle(0, 0, 0)
                 },
                 world = {
-                    model = "models/props_c17/TrapPropeller_Engine.mdl",
+                    model = "models/viper/mw/attachments/mike4/attachment_vm_ar_mike4_barsil.mdl",
                     attachment = "muzzle",
-                    pos = Vector(2, 0, 0),
-                    ang = Angle(0, 90, 0),
-                    scale = 0.035,
-                    skin = 0
+                    pos = Vector(0, 0, 0),
+                    ang = Angle(0, 0, 0)
                 }
             },
             modifiers = {
@@ -213,22 +219,16 @@ MW.Attachments = {
             icon = "ft_base/providers/mw/mw_logo.png",
             visuals = {
                 view = {
-                    model = "models/props_junk/PopCan01a.mdl",
-                    attachment = "muzzle",
-                    pos = Vector(3, 0, 0),
-                    ang = Angle(0, 90, 0),
-                    scale = 0.2,
-                    material = "models/shiny",
-                    color = {r = 55, g = 58, b = 62, a = 255}
+                    model = "models/viper/mw/attachments/mike4/attachment_vm_ar_mike4_barsil.mdl",
+                    bone = "tag_sling",
+                    pos = Vector(0, 0, 0),
+                    ang = Angle(0, 0, 0)
                 },
                 world = {
-                    model = "models/props_junk/PopCan01a.mdl",
+                    model = "models/viper/mw/attachments/mike4/attachment_vm_ar_mike4_barsil.mdl",
                     attachment = "muzzle",
-                    pos = Vector(2.5, 0, 0),
-                    ang = Angle(0, 90, 0),
-                    scale = 0.2,
-                    material = "models/shiny",
-                    color = {r = 55, g = 58, b = 62, a = 255}
+                    pos = Vector(0, 0, 0),
+                    ang = Angle(0, 0, 0)
                 }
             },
             modifiers = {

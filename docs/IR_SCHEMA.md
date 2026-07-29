@@ -75,3 +75,21 @@ Attachment definitions may contain `icon` and a `visuals` table. Each `view` or
 `skin`, `material`, `materials`, `bodygroups`, `elements`, and `color`. The
 client runtime creates only models declared by validated IR and rebuilds them
 after every authoritative install/uninstall state change.
+
+## Provider Metadata
+
+The inspect and customization providers consume declarative metadata from IR;
+they never execute source weapon code. `ui.inspect` supports `title`, `type`,
+`description`, `credits`, `preview`, `stats`, `falloff`, `hints`, `blur`, and
+`hideHud` in addition to its command, pose, and animation fields. The
+`ui.customization` table supports `title`, `openCommand`, `provider`,
+`source`, `presets`, `controls`, `stats`, `hints`, `preview`, and `animations`.
+
+Attachment slots and definitions expose the canonical metadata keys `name`,
+`shortName`, `category`, `folder`, `description`, `pros`, `cons`, `trivia`,
+`credits`, `stats`, `toggles`, and `sliders`. Dialect adapters populate these
+keys from source aliases such as `PrintName`, `ShortName`, `Description`,
+`ToggleStats`, and `SliderValues` while retaining the original fields for
+provenance and conversion. Rich metadata is data-only and is validated for
+finite values and bounded nesting; functions and other executable values are
+rejected.

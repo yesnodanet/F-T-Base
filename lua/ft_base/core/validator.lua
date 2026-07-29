@@ -127,6 +127,64 @@ local function invalidAttachment(report, message, attachment)
     addError(report, message, attachment)
 end
 
+local function validateMetadataValue(report, path, value, allowString)
+    if value == nil then
+        return
+    end
+
+    if allowString and type(value) == "string" then
+        return
+    end
+
+    if type(value) ~= "table" then
+        addError(report, path .. " must be a " .. (allowString and "string or table" or "table"))
+        return
+    end
+
+    validateFiniteTree(value, report, path, 1, {}, 64)
+end
+
+local attachmentStringMetadata = {
+    "name", "shortName", "category", "folder"
+}
+
+local attachmentRichMetadata = {
+    "description", "pros", "cons", "trivia", "credits", "stats", "toggles", "sliders"
+}
+
+local function validateAttachmentMetadata(report, prefix, value)
+    if type(value) ~= "table" then
+        return
+    end
+
+    for _, field in ipairs(attachmentStringMetadata) do
+        local item = value[field]
+
+        if item ~= nil and (type(item) ~= "string" or item == "") then
+            invalidAttachment(report, prefix .. "." .. field .. " must be a non-empty string", value)
+        end
+    end
+
+    for _, field in ipairs(attachmentRichMetadata) do
+        local item = value[field]
+
+        if item ~= nil then
+            if field == "description" or field == "pros" or field == "cons"
+                or field == "trivia" or field == "credits" then
+                if type(item) ~= "string" and type(item) ~= "table" then
+                    invalidAttachment(report, prefix .. "." .. field .. " must be a string or table", value)
+                elseif type(item) == "table" then
+                    validateFiniteTree(item, report, prefix .. "." .. field, 1, {}, 64)
+                end
+            elseif type(item) ~= "table" then
+                invalidAttachment(report, prefix .. "." .. field .. " must be a table", value)
+            else
+                validateFiniteTree(item, report, prefix .. "." .. field, 1, {}, 64)
+            end
+        end
+    end
+end
+
 local optionalIRPaths = {
     ["fire.delay"] = true,
     ["camera.sprint.pos"] = true,
@@ -186,7 +244,7 @@ local modifierNumberRules = {
     ["camera.freeAim.radius"] = {minimum = 0},
     ["camera.breathing"] = {minimum = 0},
     ["camera.landing"] = {minimum = 0},
-    ["camera.microJitter"] = {minimum = 0},
+    ["camera.microJitter"] = {},
     ["camera.deadzone"] = {minimum = 0},
     ["animations.reloadDuration"] = {minimum = 0},
     ["ads.fov"] = {minimum = 1, maximum = 179},
@@ -414,6 +472,8 @@ local function validateAttachments(ir, report, limits)
                 elseif type(accepted) == "table" and not Table.IsArray(accepted) then
                     invalidAttachment(report, prefix .. " attachment types must be an array", slot)
                 end
+
+                validateAttachmentMetadata(report, prefix, slot)
             end
         end
     end
@@ -447,6 +507,12 @@ local function validateAttachments(ir, report, limits)
                 definition
             )
         elseif type(definition) == "table" then
+            validateAttachmentMetadata(
+                report,
+                "attachments.definitions." .. tostring(attachmentId),
+                definition
+            )
+
             if definition.icon ~= nil and (type(definition.icon) ~= "string" or definition.icon == "") then
                 invalidAttachment(report, "attachment icon must be a non-empty material path", definition)
             end
@@ -580,6 +646,39 @@ local function validateAttachmentEffectiveValues(ir, report)
     end
 end
 
+local function validateUIMetadata(ir, report)
+    local ui = ir.ui
+
+    if type(ui) ~= "table" then
+        return
+    end
+
+    local inspect = ui.inspect
+    local customization = ui.customization
+
+    if type(inspect) == "table" then
+        validateMetadataValue(report, "ui.inspect.description", inspect.description, true)
+        validateMetadataValue(report, "ui.inspect.credits", inspect.credits, true)
+        validateMetadataValue(report, "ui.inspect.preview", inspect.preview, false)
+        validateMetadataValue(report, "ui.inspect.stats", inspect.stats, false)
+        validateMetadataValue(report, "ui.inspect.falloff", inspect.falloff, false)
+        validateMetadataValue(report, "ui.inspect.hints", inspect.hints, true)
+    end
+
+    if type(customization) == "table" then
+        if customization.source ~= nil and type(customization.source) ~= "string" then
+            addError(report, "ui.customization.source must be a string")
+        end
+
+        validateMetadataValue(report, "ui.customization.presets", customization.presets, false)
+        validateMetadataValue(report, "ui.customization.controls", customization.controls, false)
+        validateMetadataValue(report, "ui.customization.stats", customization.stats, false)
+        validateMetadataValue(report, "ui.customization.hints", customization.hints, true)
+        validateMetadataValue(report, "ui.customization.preview", customization.preview, false)
+        validateMetadataValue(report, "ui.customization.animations", customization.animations, false)
+    end
+end
+
 function Validator.Validate(ir, report)
     report = report or FTBase.Report.New("validation")
 
@@ -657,7 +756,7 @@ function Validator.Validate(ir, report)
         {path = "camera.spring.damping", minimum = 0},
         {path = "camera.breathing", minimum = 0},
         {path = "camera.landing", minimum = 0},
-        {path = "camera.microJitter", minimum = 0},
+        {path = "camera.microJitter"},
         {path = "camera.deadzone", minimum = 0},
         {path = "camera.aimTransition", minimum = 0},
         {path = "ads.fov", minimum = 1, maximum = 179},
@@ -686,17 +785,22 @@ function Validator.Validate(ir, report)
         "meta.spawnable", "fire.automatic", "ballistics.travelTime", "ballistics.armor.enabled",
         "ballistics.ricochet.enabled", "camera.freeAim.enabled", "sounds.occlusion.enabled",
         "sounds.suppression.enabled", "prediction.rollback", "movement.blindFire", "npc.enabled",
-        "vehicles.enabled", "rendering.useHands", "rendering.viewModelFlip", "ui.drawAmmo", "ui.crosshair", "ui.inspect.enabled"
+        "vehicles.enabled", "rendering.useHands", "rendering.viewModelFlip", "ui.drawAmmo", "ui.crosshair",
+        "ui.inspect.enabled", "ui.inspect.blur", "ui.inspect.hideHud"
     }
 
     for _, path in ipairs(booleanPaths) do
         validateType(ir, report, path, "boolean", false)
     end
 
+    validateUIMetadata(ir, report)
+
     local stringPaths = {
         "meta.id", "meta.printName", "meta.category", "meta.author", "ammo.type",
         "damage.armor.mode", "recoil.mode", "recoil.interpolation", "networking.compression",
-        "prediction.seedMode", "rendering.holdType", "ui.customization.openCommand"
+        "prediction.seedMode", "rendering.holdType", "ui.inspect.command", "ui.inspect.title",
+        "ui.inspect.type", "ui.customization.provider", "ui.customization.title",
+        "ui.customization.openCommand"
     }
 
     for _, path in ipairs(stringPaths) do

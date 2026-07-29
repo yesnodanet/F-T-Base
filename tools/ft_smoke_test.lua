@@ -444,9 +444,9 @@ assert(FTBase.Runtime.Customization.GetInspectProvider(uppercaseVisualRuntime).i
     "Inspect visual domain was not explicit")
 assert(FTBase.Runtime.Visuals.GetDisplayName({meta = {printName = ""}}, {PrintName = ""}) == "Weapon",
     "Empty weapon name did not use fallback")
-assert(FTBase.Runtime.Visuals.ResolveFont("Trebuchet48") == "Trebuchet48",
-    "Trebuchet48 compatibility font is not registered")
-assert(FTBase.Runtime.Visuals.ResolveFont("missing-font", "Trebuchet48") == "Trebuchet48",
+assert(FTBase.Runtime.Visuals.ResolveFont("Trebuchet48") == "DermaDefault",
+    "Invalid compatibility font did not use the safe default")
+assert(FTBase.Runtime.Visuals.ResolveFont("missing-font", "Trebuchet48") == "DermaDefault",
     "Invalid HUD font did not use a valid fallback")
 
 local inspectStyle = FTBase.Runtime.Visuals.GetInspectStyle(uppercaseVisualRuntime)

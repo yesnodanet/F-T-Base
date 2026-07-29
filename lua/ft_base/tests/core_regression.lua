@@ -125,6 +125,60 @@ FT.Attachments.Definitions = {
 ]], {name = "core-attachment-visual-source"})
 assert(not visualSource.report:HasErrors(), visualSource.report:ToString())
 
+local metadataSource = FTBase.Compiler.CompileSource([[
+using "TFA"
+TFA.Description = "Inspect description"
+TFA.InspectTitle = "Inspection"
+TFA.InspectType = "Rifle"
+TFA.InspectStats = {damage = {label = "Damage", value = 31}}
+TFA.InspectFalloff = {min = 10, max = 100}
+TFA.Customization.Title = "Customize"
+TFA.Customization.Presets = {"default"}
+TFA.Attachments = {
+    {id = "optic", type = "optic", PrintName = "Optic", ShortName = "OPT", Folder = "Sights"}
+}
+TFA.AttachmentDefinitions = {
+    reflex = {
+        type = "optic",
+        PrintName = "Reflex",
+        ShortName = "RFX",
+        Category = "Optics",
+        Folder = "Sights",
+        Description = {"Clear sight picture"},
+        Pros = {"Faster ADS"},
+        Cons = {"More sway"},
+        Trivia = {"Test metadata"},
+        Credits = {"F&T"},
+        Stats = {ads = -0.1},
+        ToggleStats = {enabled = true},
+        SliderValues = {zoom = {minimum = 1, maximum = 4}}
+    }
+}
+]], {name = "core-provider-metadata"})
+assert(not metadataSource.report:HasErrors(), metadataSource.report:ToString())
+assert(metadataSource.ir.ui.inspect.title == "Inspection", "inspect title metadata was not mapped")
+assert(metadataSource.ir.ui.customization.title == "Customize", "customization title metadata was not mapped")
+assert(metadataSource.ir.attachments.slots[1].name == "Optic", "slot PrintName was not normalized")
+assert(metadataSource.ir.attachments.slots[1].shortName == "OPT", "slot ShortName was not normalized")
+assert(metadataSource.ir.attachments.slots[1].folder == "Sights", "slot Folder was not normalized")
+assert(metadataSource.ir.attachments.definitions.reflex.name == "Reflex", "definition PrintName was not normalized")
+assert(metadataSource.ir.attachments.definitions.reflex.pros[1] == "Faster ADS", "definition Pros metadata was not normalized")
+assert(metadataSource.ir.attachments.definitions.reflex.toggles.enabled == true,
+    "definition ToggleStats metadata was not normalized")
+assert(metadataSource.ir.attachments.definitions.reflex.sliders.zoom.maximum == 4,
+    "definition SliderValues metadata was not normalized")
+
+local invalidProviderMetadata = FTBase.Compiler.CompileSource([[
+FT.UI.Inspect.Blur = "yes"
+FT.Attachments.Slots = {
+    {id = "optic", name = 42}
+}
+FT.Attachments.Definitions = {
+    reflex = {type = "optic", stats = "not-a-table", toggles = 7}
+}
+]], {name = "core-invalid-provider-metadata"})
+assert(invalidProviderMetadata.report:HasErrors(), "invalid provider metadata was accepted")
+
 local invalidProjectile = FTBase.Compiler.CompileSource([[
 FT.Ballistics.Mode = "projectile"
 ]], {name = "core-invalid-projectile"})

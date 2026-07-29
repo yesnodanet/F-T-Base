@@ -9,6 +9,7 @@ function IR.New()
             id = "",
             printName = "",
             category = "F&T Base",
+            subCategory = "",
             author = "",
             description = "",
             purpose = "",
@@ -250,6 +251,7 @@ function IR.New()
         rendering = {
             viewModel = nil,
             worldModel = nil,
+            worldModelMirror = nil,
             holdType = "ar2",
             useHands = true,
             viewModelFOV = nil,
@@ -268,15 +270,31 @@ function IR.New()
             inspect = {
                 enabled = true,
                 command = "ft_customize",
+                title = "",
+                type = "",
+                description = "",
+                credits = {},
+                preview = {},
                 pos = nil,
                 ang = nil,
                 animation = nil,
-                stats = {}
+                stats = {},
+                falloff = {},
+                hints = {},
+                blur = false,
+                hideHud = false
             },
             customization = {
                 provider = "ft",
                 source = nil,
-                openCommand = "ft_customize"
+                openCommand = "ft_customize",
+                title = "",
+                presets = {},
+                controls = {},
+                stats = {},
+                hints = {},
+                preview = {},
+                animations = {}
             },
             visual = {
                 providers = {

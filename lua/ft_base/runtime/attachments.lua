@@ -73,11 +73,25 @@ local function applyModifier(value, modifier)
     return value
 end
 
-local function buildEffectiveIR(runtime)
+local function buildEffectiveIR(runtime, previewSlotId, previewAttachmentId)
     local effective = FTBase.IR.Clone(runtime.ir)
 
     for _, slot in ipairs(runtime.attachments.slots or {}) do
-        local modifiers = runtime.attachmentModifiers[slot.id]
+        local attachmentId = runtime.attachments.installed[slot.id]
+
+        if slot.id == previewSlotId then
+            attachmentId = previewAttachmentId
+        end
+
+        local definition = attachmentId
+            and runtime.ir.attachments
+            and runtime.ir.attachments.definitions
+            and runtime.ir.attachments.definitions[attachmentId]
+        local modifiers = definition and definition.modifiers
+
+        if slot.id ~= previewSlotId and not attachmentId and runtime.attachmentModifiers then
+            modifiers = runtime.attachmentModifiers[slot.id]
+        end
 
         for irPath, modifier in pairs(modifiers or {}) do
             local value = Path.Get(effective, irPath)
@@ -179,6 +193,69 @@ end
 
 function Attachments.GetEffectiveIR(runtime)
     return runtime and (runtime.effectiveIR or runtime.ir) or nil
+end
+
+-- Build a temporary effective IR for UI preview without changing installed
+-- attachments, cooldowns, or server-owned state.  The candidate is validated
+-- against the same slot rules as an install request.
+function Attachments.PreviewIR(runtime, slotId, attachmentId)
+    if not runtime or not runtime.attachments then
+        return nil, "Weapon runtime is unavailable"
+    end
+
+    if attachmentId ~= nil and attachmentId ~= "" then
+        local allowed, reason = Attachments.CanInstall(runtime, slotId, attachmentId)
+
+        if not allowed then
+            return nil, reason
+        end
+    end
+
+    return buildEffectiveIR(runtime, slotId, attachmentId)
+end
+
+local function readPath(value, path)
+    if FTBase.Util and FTBase.Util.Path and FTBase.Util.Path.Get then
+        return FTBase.Util.Path.Get(value, path)
+    end
+
+    return nil
+end
+
+local function formatComparable(value)
+    if type(value) == "number" then
+        return value
+    end
+
+    if type(value) == "table" then
+        return FTBase.Util.Table.DeepCopy(value)
+    end
+
+    return value
+end
+
+function Attachments.GetStatDiff(baseIR, previewIR, paths)
+    local output = {}
+
+    for _, entry in ipairs(paths or {}) do
+        local path = type(entry) == "table" and entry.path or entry
+        local label = type(entry) == "table" and (entry.label or entry.name) or path
+
+        if type(path) == "string" and path ~= "" then
+            local before = formatComparable(readPath(baseIR, path))
+            local after = formatComparable(readPath(previewIR, path))
+
+            output[#output + 1] = {
+                path = path,
+                label = label or path,
+                before = before,
+                after = after,
+                changed = before ~= after
+            }
+        end
+    end
+
+    return output
 end
 
 function Attachments.RebuildModifiers(runtime)
