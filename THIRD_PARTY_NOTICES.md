@@ -2,10 +2,12 @@
 
 F&T Base includes reference snapshots supplied by the repository owner for
 compatibility development. They live under `third_party/workshop/<id>/`, outside
-the Garry's Mod `lua/` tree. F&T does not execute their autorun files, register
-their original SWEPs, inherit from their globals, or require the corresponding
-addons at runtime. Active F&T behavior remains implemented in the F&T compiler,
-IR, and runtime modules.
+the Garry's Mod `lua/` tree. The ordinary F&T IR runtime does not execute their
+autorun files, register their original SWEPs, inherit from their globals, or
+require the corresponding addons at runtime. The explicitly named
+`ft_native_template_*` fixtures are a separate test mode and intentionally
+require their declared external addons. Active ordinary F&T behavior remains
+implemented in the F&T compiler, IR, and runtime modules.
 
 A selected UI-only subset is copied into `materials/ft_base/providers/` and
 `resource/fonts/` under F&T-specific paths. It contains TFA inspection

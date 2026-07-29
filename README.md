@@ -68,8 +68,10 @@ Weapon File
   -> Weapon Engine
 ```
 
-The runtime does not execute external weapon-base logic. External namespaces are
-accepted only as source dialects and are translated into F&T IR.
+The ordinary F&T IR runtime does not execute external weapon-base logic.
+External namespaces are accepted only as source dialects and are translated
+into F&T IR; the explicitly named native fixtures are the separate test-mode
+exception described below.
 
 ## Namespace Mixing
 
@@ -507,7 +509,7 @@ manifest digests, author credits, and the publication declaration are in
 
 F&T Base follows a few hard rules:
 
-- external weapon bases are never runtime dependencies;
+- external weapon bases are never dependencies of ordinary F&T IR weapons;
 - adapters translate syntax only;
 - the runtime consumes only F&T IR;
 - conflicts must be visible and readable;

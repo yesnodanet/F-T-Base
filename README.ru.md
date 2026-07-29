@@ -69,8 +69,10 @@ Weapon File
   -> Weapon Engine
 ```
 
-Runtime не исполняет логику внешних weapon base. Внешние namespaces принимаются
-только как source dialects и переводятся в F&T IR.
+Обычный F&T IR runtime не исполняет логику внешних weapon base. Внешние
+namespaces принимаются только как source dialects и переводятся в F&T IR;
+явно названные native-fixture являются отдельным исключением для тестового
+режима ниже.
 
 ## Смешивание namespaces
 
@@ -508,7 +510,7 @@ load tree GMod. Небольшой атрибутированный набор U
 
 F&T Base следует нескольким жестким правилам:
 
-- внешние weapon base никогда не являются runtime dependencies;
+- внешние weapon base не являются dependencies обычных F&T IR-оружий;
 - adapters только переводят syntax;
 - runtime потребляет только F&T IR;
 - conflicts должны быть видимыми и читаемыми;
