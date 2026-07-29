@@ -31,6 +31,30 @@ The snapshots were imported on 2026-07-28 from
 the original relative file tree, a deterministic per-file SHA-256 manifest, and
 `SNAPSHOT.json` with its source directory, byte count, and manifest digest.
 
+## Native deployment manifest
+
+The temporary `ft_native_template_*` fixtures use these additional Workshop
+items only when the native test mode is installed. They are not copied into the
+repository or loaded by the ordinary F&T runtime; the deployment script reads
+the prepared local directories under `C:\Users\ameri\AppData\Local\Temp\gmpublisher\bases`
+and places each one in a separate `ft_native_dep_*` server addon.
+
+| Dialect | Base Workshop ID | Sample Workshop ID | Local source directory |
+| --- | ---: | ---: | --- |
+| TFA | `2840031720` | `1676032134` | `tfa\tfa_base_2840031720`, `tfa\tfa_at_ar_15_1676032134` |
+| ARC9 | `2910505837` | `2910537020` | `arc9\arc9_weapon_base_2910505837`, `arc9\arc9_gunsmith_reloaded_2910537020` |
+| ArcCW | `2131057232` | `2257255110` | `arccw\arccw_arctic_s_customizable_weapons_base_2131057232`, `arccw\arccw_gso_2257255110` |
+| MW | `2459720887` | `2528829149` | `mw\modern_wokefare_base_2459720887`, `mw\modern_warfare_2019_sweps_assault_rifles_2528829149` |
+| TacRP | `3734712166` | `3271554982` | `tacrp\tacrp_tactical_rp_weapons_official_3734712166`, `tacrp\tacrp_exoops_weapon_pack_3271554982` |
+| SWB | `1967187358` | none | `swb_1967187358` |
+
+These IDs identify the sources and are not an endorsement or a claim of
+redistribution rights. The owner-provided local snapshots and publication
+declaration above apply to the deployment workflow as well. The supplied SWB
+snapshot references an absent optional `sv_hooks.lua`; F&T ships an empty
+server-side load shim at `lua/weapons/swb_base/sv_hooks.lua` solely so the
+native fixture can load without inventing external gameplay behavior.
+
 ## Credits found in the supplied material
 
 - TFA Base identifies The Forgotten Architect as author; YuRaNnNzZZ and

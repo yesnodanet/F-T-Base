@@ -199,6 +199,7 @@ end
     for (const test of [
         "lua/ft_base/tests/smoke.lua",
         "lua/ft_base/tests/core_regression.lua",
+        "lua/ft_base/tests/compat.lua",
         "lua/ft_base/tests/runtime_regression.lua",
         "lua/ft_base/tests/templates.lua",
         "tools/ft_smoke_test.lua"

@@ -381,6 +381,28 @@ The addon includes copy-ready, spawnable templates: `ft_template_tfa`,
 `ft_base`, declares its weapon through `SWEP.FTSource`, and runs without the
 external weapon base whose syntax it resembles.
 
+There is also a temporary native-template mode for testing the original base
+interfaces. The six `ft_native_template_*` fixtures inherit the real sample
+SWEPs (`tfa_ins2_cw_ar15`, `arc9_go_ak47`, `arccw_go_ak47`, `mg_mike4`,
+`tacrp_eo_masada`, and `swb_base`), so the corresponding external base supplies
+HUD, inspect/customization, attachments, animations, models, and ADS. These
+fixtures require their declared Workshop dependencies and never fall back to
+the F&T IR runtime. Use `FTBase.Compat.GetManifest()` to inspect the dependency
+map and `FTBase.Compat.Check()` for missing registered weapon classes.
+
+Install native dependencies into isolated server addon directories with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/server/install_native_dependencies.ps1 `
+  -ServerRoot "D:\CMD_STEAM\steamapps\common\GarrysModDS\garrysmod" `
+  -SourceRoot "C:\Users\ameri\AppData\Local\Temp\gmpublisher\bases" `
+  -Clean
+```
+
+The installer only cleans the known `ft_native_dep_*` directories and
+`ft_base_visual_test`. See [`docs/WEAPON_TEMPLATES.md`](docs/WEAPON_TEMPLATES.md)
+for the complete native manifest and capability table.
+
 The shipped templates intentionally exercise the current runtime surface:
 dialect-specific visual providers, inspect/customize poses and animations,
 ADS or scope metadata, default installed attachments, and clientside attachment
@@ -431,6 +453,12 @@ lua/
   ft_converter/    Converter API and generators
   weapons/
     ft_base/       Base SWEP
+    ft_native_template_tfa/
+    ft_native_template_arc9/
+    ft_native_template_arccw/
+    ft_native_template_mw/
+    ft_native_template_tacrp/
+    ft_native_template_swb/
     ft_example_mixed/
     ft_template_tfa/
     ft_template_swb/

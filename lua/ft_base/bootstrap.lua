@@ -35,6 +35,8 @@ local files = {
     "ft_base/core/plugin.lua",
     "ft_base/core/weapon_registry.lua",
 
+    "ft_base/compat/native.lua",
+
     "ft_base/compiler/lexer.lua",
     "ft_base/compiler/parser.lua",
     "ft_base/compiler/resolver.lua",

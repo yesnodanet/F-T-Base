@@ -382,6 +382,29 @@ FT.Recoil.Pattern = {
 от `ft_base`, описывает оружие в `SWEP.FTSource` и работает без внешней базы,
 чей синтаксис использует.
 
+Для проверки оригинальных интерфейсов добавлен временный native-режим с
+шестью `ft_native_template_*`. Эти fixture-наследники используют реальные
+sample-SWEP (`tfa_ins2_cw_ar15`, `arc9_go_ak47`, `arccw_go_ak47`, `mg_mike4`,
+`tacrp_eo_masada` и `swb_base`), поэтому HUD, inspect/customization,
+attachments, animations, models и ADS предоставляет соответствующая внешняя
+база. Для них обязательны указанные Workshop dependencies; fallback на F&T IR
+runtime не используется. Карта зависимостей доступна через
+`FTBase.Compat.GetManifest()`, а `FTBase.Compat.Check()` сообщает об отсутствующих
+зарегистрированных weapon-классах.
+
+Установить native dependencies в отдельные addon-каталоги сервера можно так:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/server/install_native_dependencies.ps1 `
+  -ServerRoot "D:\CMD_STEAM\steamapps\common\GarrysModDS\garrysmod" `
+  -SourceRoot "C:\Users\ameri\AppData\Local\Temp\gmpublisher\bases" `
+  -Clean
+```
+
+Installer очищает только известные каталоги `ft_native_dep_*` и
+`ft_base_visual_test`. Полная таблица native manifest и capabilities находится
+в [`docs/WEAPON_TEMPLATES.md`](docs/WEAPON_TEMPLATES.md).
+
 Текущие шаблоны специально показывают актуальные возможности runtime:
 диалектные visual providers, poses и animations для inspect/customize,
 ADS или scope metadata, установленные по умолчанию attachments и clientside
@@ -431,6 +454,12 @@ lua/
   ft_converter/    Converter API and generators
   weapons/
     ft_base/       Base SWEP
+    ft_native_template_tfa/
+    ft_native_template_arc9/
+    ft_native_template_arccw/
+    ft_native_template_mw/
+    ft_native_template_tacrp/
+    ft_native_template_swb/
     ft_example_mixed/
     ft_template_tfa/
     ft_template_swb/

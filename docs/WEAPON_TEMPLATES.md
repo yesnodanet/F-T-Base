@@ -20,6 +20,35 @@ initialization. The shipped templates also call `PrepareDefinition` after the
 source declaration, which applies their clip and ammo configuration before the
 weapon entity is created. No external weapon base needs to be installed.
 
+## Temporary Native Templates
+
+The addon also ships six `ft_native_template_*` fixtures. These are deliberately
+different from the IR templates above: each fixture inherits the real sample
+SWEP, so the external base owns its HUD, inspect/customization screen,
+attachments, animations, models, and ADS behavior. F&T does not replace those
+hooks and does not provide an IR fallback when a native dependency is missing.
+
+| Template | Native base/sample | Workshop dependencies | Declared surface |
+| --- | --- | --- | --- |
+| `ft_native_template_tfa` | `tfa_ins2_cw_ar15` | `2840031720`, `1676032134` | HUD, inspect, customization, attachments, presentation |
+| `ft_native_template_arc9` | `arc9_go_ak47` | `2910505837`, `2910537020` | HUD, inspect, customization, attachments, presentation |
+| `ft_native_template_arccw` | `arccw_go_ak47` | `2131057232`, `2257255110` | HUD, inspect, customization, attachments, presentation |
+| `ft_native_template_mw` | `mg_mike4` | `2459720887`, `2528829149` | HUD, inspect, customization, attachments, presentation |
+| `ft_native_template_tacrp` | `tacrp_eo_masada` | `3734712166`, `3271554982` | HUD, inspect, customization, attachments, presentation |
+| `ft_native_template_swb` | `swb_base` | `1967187358` | HUD, ADS, presentation; no customization claim |
+
+Native dependencies are installed outside this repository. The compatibility
+registry is available as `FTBase.Compat`; `GetManifest()` returns the stable
+Workshop/base/sample manifest and `Check()` reports unavailable weapon classes.
+Use `tools/server/install_native_dependencies.ps1` to copy the prepared addon
+snapshots from `C:\Users\ameri\AppData\Local\Temp\gmpublisher\bases` into
+separate `ft_native_dep_*` addon directories. The installer only removes those
+known directories and `ft_base_visual_test` when `-Clean` is supplied.
+
+The native templates are intended for client/server integration checks while
+the UI is being transferred into F&T providers. Do not mix their addon folders
+with raw vendor snapshots or with the ordinary F&T test addon.
+
 ## Creating A Weapon
 
 1. Copy one template directory and give it a unique weapon class name.

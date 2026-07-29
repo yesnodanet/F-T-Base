@@ -1,10 +1,32 @@
 param(
     [string]$ServerRoot = $env:GARRYSMOD_SERVER_ROOT,
     [string]$AddonRoot = $env:FT_BASE_GMOD_ADDON_ROOT,
+    [string]$NativeSourceRoot = $(if ($env:FT_BASE_BASES_ROOT) { $env:FT_BASE_BASES_ROOT } else { "C:\Users\ameri\AppData\Local\Temp\gmpublisher\bases" }),
+    [switch]$InstallNativeDependencies,
+    [switch]$UseInstalledNativeDependencies,
+    [switch]$CleanAddon,
+    [switch]$KeepAddon,
     [int]$TimeoutSeconds = 120
 )
 
 $ErrorActionPreference = "Stop"
+
+function Remove-TestTree {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    for ($attempt = 1; $attempt -le 10; $attempt++) {
+        try {
+            Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction Stop
+            return
+        } catch {
+            if ($attempt -eq 10) {
+                throw
+            }
+
+            Start-Sleep -Milliseconds 500
+        }
+    }
+}
 
 if ([string]::IsNullOrWhiteSpace($ServerRoot)) {
     throw "Set GARRYSMOD_SERVER_ROOT to the Garry's Mod dedicated server garrysmod directory."
@@ -31,8 +53,65 @@ if (-not (Test-Path -LiteralPath $ServerExecutable -PathType Leaf)) {
     throw "srcds.exe was not found at '$ServerExecutable'."
 }
 
-$SourceConfig = Join-Path $RepositoryRoot "tools\server\ft_base_test.cfg"
-$TargetConfig = Join-Path $ServerRoot "cfg\ft_base_test.cfg"
+$AddonName = Split-Path -Leaf $AddonRoot
+
+if (-not $KeepAddon -and ($CleanAddon -or $AddonName -eq "ft_base_visual_test")) {
+    if ($AddonName -notmatch '^ft_(base|native)_') {
+        throw "Refusing to clean an addon outside the F&T test/native naming convention: '$AddonRoot'."
+    }
+
+    if (Test-Path -LiteralPath $AddonRoot) {
+        Remove-TestTree -Path $AddonRoot
+    }
+}
+
+if ($InstallNativeDependencies -and $UseInstalledNativeDependencies) {
+    throw "Choose either -InstallNativeDependencies or -UseInstalledNativeDependencies, not both."
+}
+
+if ($InstallNativeDependencies) {
+    $DependencyInstaller = Join-Path $RepositoryRoot "tools\server\install_native_dependencies.ps1"
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $DependencyInstaller `
+        -ServerRoot $ServerRoot -SourceRoot $NativeSourceRoot -Clean
+
+    if ($LASTEXITCODE -ne 0) {
+        throw "Native dependency installation failed with exit code $LASTEXITCODE."
+    }
+}
+
+$NativeMode = $InstallNativeDependencies -or $UseInstalledNativeDependencies
+
+if ($UseInstalledNativeDependencies) {
+    $requiredDependencyAddons = @(
+        "ft_native_dep_tfa_base",
+        "ft_native_dep_tfa_ar15",
+        "ft_native_dep_arc9_base",
+        "ft_native_dep_arc9_gsr",
+        "ft_native_dep_arccw_base",
+        "ft_native_dep_arccw_gso",
+        "ft_native_dep_mw_base",
+        "ft_native_dep_mw_assault_rifles",
+        "ft_native_dep_tacrp_base",
+        "ft_native_dep_tacrp_exoops",
+        "ft_native_dep_swb"
+    )
+
+    foreach ($dependencyAddon in $requiredDependencyAddons) {
+        $dependencyPath = Join-Path $AddonsRoot $dependencyAddon
+
+        if (-not (Test-Path -LiteralPath $dependencyPath -PathType Container)) {
+            throw "Installed native dependency addon '$dependencyPath' was not found."
+        }
+    }
+}
+
+$ConfigName = if ($NativeMode) { "ft_base_native_test.cfg" } else { "ft_base_test.cfg" }
+$SourceConfig = Join-Path $RepositoryRoot (Join-Path "tools\server" $ConfigName)
+$TargetConfig = Join-Path $ServerRoot (Join-Path "cfg" $ConfigName)
+
+if (-not (Test-Path -LiteralPath $SourceConfig -PathType Leaf)) {
+    throw "The test configuration '$SourceConfig' was not found."
+}
 
 New-Item -ItemType Directory -Path $AddonRoot -Force | Out-Null
 Copy-Item -LiteralPath (Join-Path $RepositoryRoot "lua") -Destination $AddonRoot -Recurse -Force
@@ -80,7 +159,7 @@ try {
             "-condebug",
             "-norestart",
             "-game", "garrysmod",
-            "+servercfgfile", "ft_base_test.cfg",
+            "+servercfgfile", $ConfigName,
             "+map", "gm_construct",
             "+maxplayers", "1"
         ) `
@@ -89,9 +168,14 @@ try {
     $Expected = @(
         "F&T Base visual smoke test passed",
         "F&T core regression tests passed",
+        "F&T native compatibility registry tests passed",
         "F&T runtime regression tests passed",
         "F&T Base template regression passed"
     )
+
+    if ($NativeMode) {
+        $Expected += "F&T native dependency server test passed"
+    }
     $Deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
 
     while ([DateTime]::UtcNow -lt $Deadline) {
@@ -104,6 +188,14 @@ try {
         $Missing = @($Expected | Where-Object { -not $Output.Contains($_) })
 
         if ($Missing.Count -eq 0) {
+            $LuaErrors = @($Output -split "`r?`n" | Where-Object {
+                $_ -match "Lua Error:|Lua Error$"
+            })
+
+            if ($LuaErrors.Count -gt 0) {
+                throw "srcds emitted Lua errors during the dedicated test suite.`n$($LuaErrors -join "`n")"
+            }
+
             Write-Output $Output.Trim()
             Write-Output "F&T dedicated-server test suite passed"
             exit 0

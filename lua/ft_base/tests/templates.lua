@@ -33,6 +33,57 @@ local profiles = {
     }
 }
 
+local nativeProfiles = {
+    {
+        class = "ft_native_template_tfa",
+        dialect = "TFA",
+        base = "tfa_ins2_cw_ar15",
+        sample = "tfa_ins2_cw_ar15",
+        dependencyBase = "tfa_gun_base",
+        workshop = {"2840031720", "1676032134"}
+    },
+    {
+        class = "ft_native_template_arc9",
+        dialect = "ARC9",
+        base = "arc9_go_ak47",
+        sample = "arc9_go_ak47",
+        dependencyBase = "arc9_base",
+        workshop = {"2910505837", "2910537020"}
+    },
+    {
+        class = "ft_native_template_arccw",
+        dialect = "ArcCW",
+        base = "arccw_go_ak47",
+        sample = "arccw_go_ak47",
+        dependencyBase = "arccw_base",
+        workshop = {"2131057232", "2257255110"}
+    },
+    {
+        class = "ft_native_template_mw",
+        dialect = "MW",
+        base = "mg_mike4",
+        sample = "mg_mike4",
+        dependencyBase = "mg_base",
+        workshop = {"2459720887", "2528829149"}
+    },
+    {
+        class = "ft_native_template_tacrp",
+        dialect = "TacRP",
+        base = "tacrp_eo_masada",
+        sample = "tacrp_eo_masada",
+        dependencyBase = "tacrp_base",
+        workshop = {"3734712166", "3271554982"}
+    },
+    {
+        class = "ft_native_template_swb",
+        dialect = "SWB",
+        base = "swb_base",
+        sample = nil,
+        dependencyBase = "swb_base",
+        workshop = {"1967187358"}
+    }
+}
+
 local function includeDefinition(className)
     local previousSWEP = SWEP
     SWEP = {}
@@ -43,6 +94,18 @@ local function includeDefinition(className)
 
     assert(ok, tostring(message))
     assert(type(definition.FTSource) == "string", className .. " must declare SWEP.FTSource")
+    return definition
+end
+
+local function includeNativeDefinition(className)
+    local previousSWEP = SWEP
+    SWEP = {}
+
+    local ok, message = pcall(include, "weapons/" .. className .. "/shared.lua")
+    local definition = SWEP
+    SWEP = previousSWEP
+
+    assert(ok, tostring(message))
     return definition
 end
 
@@ -144,6 +207,31 @@ for _, profile in ipairs(profiles) do
     end
     if not profile.nativeHud then
         assertAttachmentVisuals(result.ir, profile.class)
+    end
+end
+
+for _, profile in ipairs(nativeProfiles) do
+    local definition = includeNativeDefinition(profile.class)
+    local dependency = definition.FTNativeDependency
+
+    assert(definition.FTNative == true, profile.class .. " must be marked as a native template")
+    assert(definition.FTNativeDialect == profile.dialect,
+        profile.class .. " declared the wrong native dialect")
+    assert(definition.Base == profile.base,
+        profile.class .. " must inherit the real sample weapon class")
+    assert(type(dependency) == "table", profile.class .. " is missing FTNativeDependency metadata")
+    assert(dependency.templateClass == profile.class,
+        profile.class .. " metadata has the wrong template class")
+    assert(dependency.sampleClass == profile.sample,
+        profile.class .. " metadata has the wrong sample class")
+    assert(dependency.baseClass == profile.dependencyBase,
+        profile.class .. " metadata has the wrong base dependency")
+    assert(type(dependency.workshop) == "table" and #dependency.workshop == #profile.workshop,
+        profile.class .. " metadata has the wrong Workshop dependency count")
+
+    for index, workshopId in ipairs(profile.workshop) do
+        assert(tostring(dependency.workshop[index].id) == workshopId,
+            profile.class .. " metadata has the wrong Workshop dependency at " .. index)
     end
 end
 
