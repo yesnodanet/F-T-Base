@@ -11,11 +11,22 @@ SWEP.AdminOnly = false
 SWEP.FTSource = [[
 using "SWB"
 
+FT.Visual.Default = "SWB"
+
 SWB.PrintName = "F&T Template - SWB Dialect"
 SWB.Category = "F&T Base Templates"
 SWB.ViewModel = "models/weapons/c_smg1.mdl"
 SWB.WorldModel = "models/weapons/w_smg1.mdl"
 SWB.HoldType = "smg"
+SWB.ViewModelFOV = 62
+SWB.Bodygroups_V = {[0] = 0}
+SWB.Bodygroups_W = {[0] = 0}
+SWB.VElements = {
+    template_receiver = {skin = 0, bodygroups = {[0] = 0}}
+}
+SWB.WElements = {
+    template_receiver = {skin = 0, bodygroups = {[0] = 0}}
+}
 
 SWB.Damage = 26
 SWB.NumShots = 1
@@ -43,15 +54,27 @@ SWB.RecoilPattern = {
 }
 
 SWB.AimFOV = 62
+SWB.AimPos = Vector(-5, -4.5, 1.8)
+SWB.AimAng = Angle(0, 0, 0)
+SWB.ZoomAmount = 1.15
+SWB.SpeedDec = 0.82
+SWB.InspectPos = Vector(-2.1, 0, -0.3)
+SWB.InspectAng = Angle(3, 21, 0)
+SWB.CustomizePos = Vector(-3.2, 0, -0.8)
+SWB.CustomizeAng = Angle(6, 30, 0)
+SWB.DrawCrosshair = true
+SWB.DrawAmmo = true
 SWB.Animations = {
     fire = ACT_VM_PRIMARYATTACK,
     reload = ACT_VM_RELOAD,
     deploy = ACT_VM_DRAW
 }
+SWB.InspectAnimation = ACT_VM_DRAW
+SWB.CustomizeAnimation = ACT_VM_DRAW
 
 SWB.Attachments = {
-    { id = "optic", name = "Optic", type = "optic" },
-    { id = "stock", name = "Stock", type = "stock" }
+    { id = "optic", name = "Optic", type = "optic", default = "holo" },
+    { id = "stock", name = "Stock", type = "stock", default = "light_stock" }
 }
 
 SWB.AttachmentDefinitions = {
@@ -61,8 +84,23 @@ SWB.AttachmentDefinitions = {
         type = "optic",
         icon = "ft_base/providers/swb/rifle_aim",
         visuals = {
-            view = {model = "models/weapons/c_pistol.mdl", pos = Vector(2, 0, 1), scale = 0.22},
-            world = {model = "models/weapons/w_pistol.mdl", pos = Vector(2, 0, 1), scale = 0.22}
+            view = {
+                model = "models/weapons/c_pistol.mdl",
+                bone = "ValveBiped.Bip01_R_Hand",
+                pos = Vector(4, -1.4, 0.7),
+                ang = Angle(0, 90, 0),
+                scale = 0.18,
+                skin = 0,
+                bodygroups = {[0] = 0}
+            },
+            world = {
+                model = "models/weapons/w_pistol.mdl",
+                attachment = "muzzle",
+                pos = Vector(-9, 0, 2),
+                ang = Angle(0, 180, 0),
+                scale = 0.16,
+                materials = {[0] = "models/shiny"}
+            }
         },
         modifiers = {
             ["spread.ads"] = { multiply = 0.72 }
@@ -73,7 +111,22 @@ SWB.AttachmentDefinitions = {
         description = "Faster aim transition with less recoil recovery.",
         type = "stock",
         visuals = {
-            world = {model = "models/props_c17/oildrum001.mdl", scale = 0.04}
+            view = {
+                model = "models/props_c17/oildrum001.mdl",
+                bone = "ValveBiped.Bip01_R_Hand",
+                pos = Vector(-4, 0, 0),
+                ang = Angle(90, 0, 0),
+                scale = 0.025,
+                material = "models/shiny"
+            },
+            world = {
+                model = "models/props_c17/oildrum001.mdl",
+                bone = "ValveBiped.Bip01_R_Hand",
+                pos = Vector(-4, 0, 0),
+                ang = Angle(90, 0, 0),
+                scale = 0.025,
+                elements = {skin = 0, bodygroups = {[0] = 0}}
+            }
         },
         modifiers = {
             ["ads.speed"] = { multiply = 1.2 },

@@ -164,13 +164,12 @@ local function addDefaults(provider)
     provider.frame = provider.frame or {width = 920, height = 600}
     provider.preview = provider.preview or {height = 220, fov = 45, camera = {45, 45, 32}, lookAt = {0, 0, 0}}
     provider.stats = provider.stats or {}
-    provider.shell = provider.shell or {
-        title = provider.title or "F&T Customization",
-        frame = provider.frame,
-        background = provider.muted or {20, 26, 32, 225},
-        accent = provider.accent or {94, 190, 235, 255},
-        titleFont = provider.font or "DermaDefaultBold"
-    }
+    provider.shell = provider.shell or {}
+    provider.shell.title = provider.shell.title or provider.title or "F&T Customization"
+    provider.shell.frame = provider.shell.frame or provider.frame
+    provider.shell.background = provider.shell.background or provider.muted or {20, 26, 32, 225}
+    provider.shell.accent = provider.shell.accent or provider.accent or {94, 190, 235, 255}
+    provider.shell.titleFont = provider.shell.titleFont or provider.font or "DermaDefaultBold"
 
     provider.Open = provider.Open or function()
         return false

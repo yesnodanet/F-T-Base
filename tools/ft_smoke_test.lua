@@ -266,6 +266,14 @@ for _, providerId in ipairs({"ft", "tfa", "swb", "mw", "arc9", "arccw", "tacrp"}
     for _, method in ipairs({"Open", "Close", "Refresh", "HandleInput", "DrawHUD", "ApplyPresentation", "GetSlots", "GetOptions", "GetInspectData", "BuildAttachmentRequest"}) do
         assert(type(provider[method]) == "function", providerId .. " provider is missing " .. method)
     end
+
+    assert(type(provider.shell) == "table" and type(provider.shell.layout) == "string",
+        providerId .. " provider is missing inspect shell layout")
+
+    if providerId ~= "ft" then
+        assert(provider.shell.mode == "fullscreen",
+            providerId .. " inspect shell is still using the generic framed UI")
+    end
 end
 
 assert(string.find(tfaProvider.assetRoot or "", "ft_base/providers/tfa", 1, true), "TFA provider asset namespace missing")
@@ -436,6 +444,10 @@ assert(FTBase.Runtime.Customization.GetInspectProvider(uppercaseVisualRuntime).i
     "Inspect visual domain was not explicit")
 assert(FTBase.Runtime.Visuals.GetDisplayName({meta = {printName = ""}}, {PrintName = ""}) == "Weapon",
     "Empty weapon name did not use fallback")
+assert(FTBase.Runtime.Visuals.ResolveFont("Trebuchet48") == "Trebuchet48",
+    "Trebuchet48 compatibility font is not registered")
+assert(FTBase.Runtime.Visuals.ResolveFont("missing-font", "Trebuchet48") == "Trebuchet48",
+    "Invalid HUD font did not use a valid fallback")
 
 local inspectStyle = FTBase.Runtime.Visuals.GetInspectStyle(uppercaseVisualRuntime)
 assert(inspectStyle.shell and inspectStyle.preview and inspectStyle.stats,

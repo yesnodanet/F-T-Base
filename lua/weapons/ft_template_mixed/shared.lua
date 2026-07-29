@@ -15,6 +15,11 @@ using "MW"
 
 FT.Priority = { "TFA", "MW", "SWB" }
 FT.Customization.Provider = "mixed"
+FT.Visual.Default = "TFA"
+FT.Visual.Inspect = "TFA"
+FT.Visual.Attachments = "MW"
+FT.Visual.HUD = "TFA"
+FT.Visual.Presentation = "TFA"
 FT.Merge = {
     ["recoil.procedural.vertical"] = "maximum",
     ["spread.ads"] = "minimum"
@@ -25,6 +30,16 @@ TFA.Category = "F&T Base Templates"
 TFA.ViewModel = "models/weapons/c_irifle.mdl"
 TFA.WorldModel = "models/weapons/w_irifle.mdl"
 TFA.HoldType = "ar2"
+TFA.UseHands = true
+TFA.ViewModelFOV = 60
+TFA.Bodygroups_V = {[0] = 0}
+TFA.Bodygroups_W = {[0] = 0}
+TFA.VElements = {
+    receiver = {skin = 0, bodygroups = {[0] = 0}}
+}
+TFA.WElements = {
+    receiver = {skin = 0, bodygroups = {[0] = 0}}
+}
 TFA.Primary.Damage = 30
 TFA.Primary.ClipSize = 30
 TFA.Primary.DefaultClip = 120
@@ -35,6 +50,20 @@ TFA.KickUp = 0.78
 TFA.KickHorizontal = 0.18
 TFA.ReloadSound = "Weapon_AR2.Reload"
 TFA.ReloadDuration = 2.1
+TFA.Secondary.IronFOV = 58
+TFA.Secondary.Scope = {
+    enabled = true,
+    magnification = 1.25,
+    reticle = "sprites/redglow1"
+}
+TFA.IronSightsPos = Vector(-6.2, -2.8, 1.25)
+TFA.IronSightsAng = Angle(0, 0, 0)
+TFA.InspectPos = Vector(4, -2, -2)
+TFA.InspectAng = Angle(12, 30, -8)
+TFA.CustomizePos = Vector(3.5, -1, -1.5)
+TFA.CustomizeAng = Angle(6, 20, -5)
+TFA.InspectAnimation = ACT_VM_IDLE
+TFA.CustomizeAnimation = ACT_VM_IDLE
 TFA.Animations = {
     fire = ACT_VM_PRIMARYATTACK,
     reload = ACT_VM_RELOAD,
@@ -61,8 +90,8 @@ MW.Aim.Speed = 1.2
 
 MW.Attachments = {
     slots = {
-        { id = "optic", name = "Optic", type = "optic" },
-        { id = "muzzle", name = "Muzzle", type = "muzzle" }
+        { id = "optic", name = "Optic", type = "optic", default = "hybrid_optic" },
+        { id = "muzzle", name = "Muzzle", type = "muzzle", default = "brake" }
     },
     definitions = {
         hybrid_optic = {
@@ -71,8 +100,24 @@ MW.Attachments = {
             type = "optic",
             icon = "ft_base/providers/mw/mw_logo.png",
             visuals = {
-                view = {model = "models/weapons/c_pistol.mdl", pos = Vector(2, 0, 1), scale = 0.22},
-                world = {model = "models/weapons/w_pistol.mdl", pos = Vector(2, 0, 1), scale = 0.22}
+                view = {
+                    model = "models/weapons/c_pistol.mdl",
+                    bone = "ValveBiped.Bip01_R_Hand",
+                    pos = Vector(5.5, -1.4, 2.6),
+                    ang = Angle(0, 90, 0),
+                    scale = 0.18,
+                    skin = 0,
+                    bodygroups = {[0] = 0},
+                    elements = {bodygroups = {[0] = 0}}
+                },
+                world = {
+                    model = "models/weapons/w_pistol.mdl",
+                    attachment = "muzzle",
+                    pos = Vector(-8, 0, 2),
+                    ang = Angle(0, 90, 0),
+                    scale = 0.18,
+                    skin = 0
+                }
             },
             modifiers = {
                 ["spread.ads"] = { multiply = 0.7 },
@@ -84,8 +129,23 @@ MW.Attachments = {
             description = "Limits camera shake and vertical recoil.",
             type = "muzzle",
             visuals = {
-                view = {model = "models/props_c17/TrapPropeller_Engine.mdl", scale = 0.05},
-                world = {model = "models/props_c17/TrapPropeller_Engine.mdl", scale = 0.05}
+                view = {
+                    model = "models/props_c17/TrapPropeller_Engine.mdl",
+                    attachment = "muzzle",
+                    pos = Vector(2.5, 0, 0),
+                    ang = Angle(0, 90, 0),
+                    scale = 0.035,
+                    material = "models/shiny",
+                    bodygroups = {[0] = 0}
+                },
+                world = {
+                    model = "models/props_c17/TrapPropeller_Engine.mdl",
+                    attachment = "muzzle",
+                    pos = Vector(2, 0, 0),
+                    ang = Angle(0, 90, 0),
+                    scale = 0.035,
+                    material = "models/shiny"
+                }
             },
             modifiers = {
                 ["camera.shake"] = { multiply = 0.72 },

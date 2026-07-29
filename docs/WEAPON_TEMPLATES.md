@@ -10,6 +10,10 @@ F&T Base ships seven spawnable reference weapons under `lua/weapons/`:
 - `ft_template_tacrp` demonstrates the `TacRP` dialect;
 - `ft_template_mixed` combines `TFA`, `SWB`, and `MW` in one source file.
 
+`ft_example_mixed` is a second mixed profile kept under the examples category.
+It uses the same provider-selection rules as `ft_template_mixed`, but carries a
+larger MW attachment set for quick gunsmith testing.
+
 They are ordinary F&T weapons. Each one extends `ft_base`, declares a
 `SWEP.FTSource` string, and is compiled into F&T IR during weapon
 initialization. The shipped templates also call `PrepareDefinition` after the
@@ -28,6 +32,12 @@ The base applies `Ammo.ClipSize`, `Ammo.DefaultClip`, `Ammo.Type`, and
 reload timing, hitscan damage, recoil, sound, animations, aiming, and movement
 are then executed by the F&T runtime.
 
+The templates are deliberately feature-complete reference profiles. They use
+dialect-native fields for view/world models, bodygroups or elements, ADS or
+scope data, inspect/customize camera poses, inspect/customize animations,
+provider selection, and attachment visual descriptors. The regression suite
+compiles the real `shared.lua` files so template drift is caught automatically.
+
 ## Attachments And Inspect
 
 An attachment needs a slot and a compatible definition. Slots are arrays;
@@ -35,13 +45,32 @@ definitions are maps indexed by attachment id.
 
 ```lua
 TFA.Attachments = {
-    { id = "optic", name = "Optic", type = "optic" }
+    { id = "optic", name = "Optic", type = "optic", default = "reflex" }
 }
 
 TFA.AttachmentDefinitions = {
     reflex = {
         name = "Reflex Sight",
         type = "optic",
+        icon = "ft_base/providers/tfa/inspectionhud/qmark",
+        visuals = {
+            view = {
+                model = "models/weapons/c_pistol.mdl",
+                bone = "ValveBiped.Bip01_R_Hand",
+                pos = Vector(4, -1.5, 0.7),
+                ang = Angle(0, 90, 0),
+                scale = 0.18,
+                bodygroups = {[0] = 0}
+            },
+            world = {
+                model = "models/weapons/w_pistol.mdl",
+                attachment = "muzzle",
+                pos = Vector(-10, 0, 2),
+                ang = Angle(0, 180, 0),
+                scale = 0.16,
+                material = "models/shiny"
+            }
+        },
         modifiers = {
             ["spread.ads"] = { multiply = 0.75 },
             ["ads.fov"] = { add = -4 }
@@ -56,7 +85,7 @@ lowercase `slots` and `definitions` keys:
 ```lua
 MW.Attachments = {
     slots = {
-        { id = "barrel", type = "barrel" }
+        { id = "barrel", type = "barrel", default = "long_barrel" }
     },
     definitions = {
         long_barrel = {
@@ -74,6 +103,9 @@ While holding an F&T weapon, press the Context Menu key (`C`), run
 the inspect panel. Installation requests are
 validated by the server against the weapon owner, slot, attachment id, and
 declared attachment type; the authoritative result is sent back to the client.
+Slots may declare `default` or `defaultAttachment`; valid defaults are installed
+when runtime state is created, which makes the shipped visual descriptors
+visible immediately after spawn.
 
 ## Visual Providers
 
@@ -88,7 +120,10 @@ The supported providers are `ft`, `tfa`, `swb`, `mw`, `arc9`, `arccw`, and
 
 ```lua
 FT.Visual.Default = "TFA"
+FT.Visual.Inspect = "TFA"
 FT.Visual.Attachments = "MW"
+FT.Visual.HUD = "TFA"
+FT.Visual.Presentation = "TFA"
 ```
 
 `FT.Customization.Provider` remains a backward-compatible alias for the
@@ -149,12 +184,12 @@ or inherit any external base.
 
 | Dialect | Useful fields in the shipped template |
 | --- | --- |
-| `TFA` | `Primary.*`, `KickUp`, `RecoilInstructions`, `Animations`, `Attachments`, `AttachmentDefinitions` |
-| `SWB` | `Damage`, `FireDelay`, `HipSpread`, `AimSpread`, `RecoilPattern`, `Animations`, `Attachments`, `AttachmentDefinitions` |
-| `MW` | `Damage`, `DamageMin`, `RPM`, `Recoil.*`, `Camera.*`, `Aim.*`, `Sound.*`, `Reload.Duration`, `Attachments` |
-| `ARC9` | `DamageMax`, `DamageMin`, `RPM`, `ClipSize`, `AttachmentDefinitions` |
-| `ArcCW` | `Damage`, `RPM`, `Primary.*`, `AttachmentDefinitions` |
-| `TacRP` | `Damage_Max`, `RPM`, `ClipSize`, `AttachmentDefinitions` |
+| `TFA` | `Primary.*`, `Secondary.Scope`, `IronSights*`, `Inspect*`, `Customize*`, `Bodygroups_*`, `VElements/WElements`, `Attachments`, `AttachmentDefinitions` |
+| `SWB` | `Damage`, `FireDelay`, `AimPos/Ang/FOV`, `ZoomAmount`, `RecoilPattern`, `Bodygroups_*`, `VElements/WElements`, `Attachments`, `AttachmentDefinitions` |
+| `MW` | `Damage`, `DamageMin`, `RPM`, `Recoil.*`, `Camera.*`, `Aim.*`, `Inspect*`, `Customize*`, `Sound.*`, `Reload.Duration`, `Attachments` |
+| `ARC9` | `DamageMax`, `DamageMin`, `Scope`, `Customize*`, `Inspect*`, `DefaultBodygroups`, `DefaultSkin`, `Elements`, `AttachmentDefinitions` |
+| `ArcCW` | `Damage`, `RPM`, `Automatic`, `Primary.*`, `Scope`, `Customize*`, `Inspect*`, `DefaultBodygroups`, `DefaultSkin`, `Elements`, `AttachmentDefinitions` |
+| `TacRP` | `Damage_Max`, `RPM`, `Scope`, `Customize*`, `Inspect*`, `DefaultBodygroups`, `DefaultSkin`, `Elements`, `AttachmentDefinitions` |
 
 For mixed weapons, use explicit namespaces for values that are intentionally
 drawn from a particular dialect. Set `FT.Priority` and `FT.Merge` whenever two

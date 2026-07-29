@@ -37,6 +37,33 @@ $TargetConfig = Join-Path $ServerRoot "cfg\ft_base_test.cfg"
 New-Item -ItemType Directory -Path $AddonRoot -Force | Out-Null
 Copy-Item -LiteralPath (Join-Path $RepositoryRoot "lua") -Destination $AddonRoot -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $RepositoryRoot "tools") -Destination $AddonRoot -Recurse -Force
+
+function Copy-RepositoryTree {
+    param([Parameter(Mandatory = $true)][string]$RelativePath)
+
+    $sourcePath = [System.IO.Path]::GetFullPath((Join-Path $RepositoryRoot $RelativePath))
+    $targetPath = [System.IO.Path]::GetFullPath((Join-Path $AddonRoot $RelativePath))
+    $repositoryPrefix = $RepositoryRoot.TrimEnd([System.IO.Path]::DirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
+    $addonPrefix = $AddonRoot.TrimEnd([System.IO.Path]::DirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
+
+    if (-not $sourcePath.StartsWith($repositoryPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "The asset source '$sourcePath' must stay below '$RepositoryRoot'."
+    }
+
+    if (-not $targetPath.StartsWith($addonPrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+        throw "The asset target '$targetPath' must stay below '$AddonRoot'."
+    }
+
+    if (-not (Test-Path -LiteralPath $sourcePath -PathType Container)) {
+        throw "The repository asset directory '$sourcePath' was not found."
+    }
+
+    New-Item -ItemType Directory -Path $targetPath -Force | Out-Null
+    Copy-Item -Path (Join-Path $sourcePath "*") -Destination $targetPath -Recurse -Force
+}
+
+Copy-RepositoryTree "materials"
+Copy-RepositoryTree "resource"
 Copy-Item -LiteralPath $SourceConfig -Destination $TargetConfig -Force
 
 $OutputLog = Join-Path $ServerRoot "console.log"
@@ -62,7 +89,8 @@ try {
     $Expected = @(
         "F&T Base visual smoke test passed",
         "F&T core regression tests passed",
-        "F&T runtime regression tests passed"
+        "F&T runtime regression tests passed",
+        "F&T Base template regression passed"
     )
     $Deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
 

@@ -15,7 +15,8 @@ local RegisteredFonts = {
     Trebuchet20 = true,
     Trebuchet22 = true,
     Trebuchet24 = true,
-    Trebuchet32 = true
+    Trebuchet32 = true,
+    Trebuchet48 = true
 }
 
 if CLIENT and surface and surface.CreateFont then
@@ -35,6 +36,7 @@ if CLIENT and surface and surface.CreateFont then
     createFont("FT_TFA_Inter_24", "Inter", 24, 600)
     createFont("FT_TFA_Inter_32", "Inter", 32, 700)
     createFont("FT_TFA_Inter_48", "Inter", 48, 700)
+    createFont("Trebuchet48", "Trebuchet MS", 48, 700)
     createFont("FT_ARC9_Venryn", "Venryn Sans", 22, 600)
     createFont("FT_ARC9_Venryn_16", "Venryn Sans", 16, 500)
     createFont("FT_ARC9_Venryn_24", "Venryn Sans", 24, 600)
@@ -45,6 +47,14 @@ if CLIENT and surface and surface.CreateFont then
     createFont("FT_MW_8MM6Z_16", "8MM6Z", 16, 500)
     createFont("FT_MW_8MM6Z_24", "8MM6Z", 24, 600)
     createFont("FT_MW_8MM6Z_48", "8MM6Z", 48, 700)
+    createFont("FT_MW_BioSans", "BioSansW05-Light", 22, 500)
+    createFont("FT_MW_BioSans_16", "BioSansW05-Light", 16, 500)
+    createFont("FT_MW_BioSans_24", "BioSansW05-Light", 24, 600)
+    createFont("FT_MW_BioSans_48", "BioSansW05-Light", 48, 700)
+    createFont("FT_MW_Conduit", "Conduit ITC", 22, 500)
+    createFont("FT_MW_Conduit_16", "Conduit ITC", 16, 500)
+    createFont("FT_MW_Conduit_24", "Conduit ITC", 24, 600)
+    createFont("FT_MW_Conduit_48", "Conduit ITC", 48, 700)
     createFont("FT_TacRP_Myriad", "Myriad Pro", 22, 500)
     createFont("FT_TacRP_Myriad_16", "Myriad Pro", 16, 500)
     createFont("FT_TacRP_Myriad_24", "Myriad Pro", 24, 600)
@@ -93,9 +103,13 @@ local function resolveFont(font, fallback)
 end
 
 local function drawText(text, font, x, y, textColor, xAlign, yAlign)
-    if draw and draw.SimpleText then
-        draw.SimpleText(text, resolveFont(font), x, y, textColor, xAlign or TEXT_ALIGN_LEFT, yAlign or TEXT_ALIGN_TOP)
+    if not draw or not draw.SimpleText or type(x) ~= "number" or type(y) ~= "number" then
+        return false
     end
+
+    local ok = pcall(draw.SimpleText, tostring(text or ""), resolveFont(font), x, y, textColor,
+        xAlign or TEXT_ALIGN_LEFT, yAlign or TEXT_ALIGN_TOP)
+    return ok
 end
 
 local function drawRect(x, y, width, height, rectColor)
@@ -105,6 +119,40 @@ local function drawRect(x, y, width, height, rectColor)
         surface.SetDrawColor(rectColor)
         surface.DrawRect(x, y, width, height)
     end
+end
+
+local HUDMaterials = {}
+
+local function drawHUDMaterial(provider, key, x, y, width, height, alpha)
+    if not CLIENT or not surface or not surface.SetMaterial or not surface.DrawTexturedRect then
+        return false
+    end
+
+    local hud = provider and provider.hud or {}
+    local path = hud[key]
+
+    if not path or tostring(path) == "" or not Material then
+        return false
+    end
+
+    local material = HUDMaterials[path]
+
+    if not material then
+        local ok, value = pcall(Material, path, "mips smooth")
+
+        if not ok then
+            return false
+        end
+
+        material = value
+        HUDMaterials[path] = material
+    end
+
+    local tint = color({255, 255, 255, alpha or 255})
+    surface.SetDrawColor(tint.r or tint[1], tint.g or tint[2], tint.b or tint[3], tint.a or tint[4])
+    surface.SetMaterial(material)
+    surface.DrawTexturedRect(x, y, width, height)
+    return true
 end
 
 local function drawCrosshair(provider, x, y, alpha)
@@ -188,6 +236,7 @@ local function drawTFAHUD(provider, context)
     end
 
     drawRect(width - 300, height - 118, 270, 88, dark)
+    drawHUDMaterial(provider, "backgroundMaterial", width - 300, height - 118, 270, 88, 80)
     drawText(Visuals.GetDisplayName(context.ir, context.swep), "DermaDefaultBold", width - 282, height - 108, accent)
     drawText(tostring(context.clip), provider.ammoFont, width - 282, height - 88, accent)
     drawText("/ " .. tostring(context.reserve), "DermaDefaultBold", width - 184, height - 70, accent)
@@ -215,6 +264,7 @@ local function drawMWHUD(provider, context)
     end
 
     drawRect(width - 350, height - 126, 320, 96, panel)
+    drawHUDMaterial(provider, "backgroundMaterial", width - 350, height - 126, 320, 96, 72)
     drawText(Visuals.GetDisplayName(context.ir, context.swep), provider.font, width - 328, height - 116, color({188, 196, 201, 255}))
     drawText(string.format("%02d", math.max(0, context.clip)), provider.ammoFont, width - 328, height - 91, accent)
     drawText("/ " .. tostring(context.reserve), "DermaDefaultBold", width - 188, height - 67, color({185, 192, 198, 255}))
@@ -240,6 +290,7 @@ local function drawARC9HUD(provider, context)
     end
 
     drawRect(30, height - 104, 268, 72, color({10, 23, 29, 220}))
+    drawHUDMaterial(provider, "backgroundMaterial", 30, height - 104, 268, 72, 90)
     drawText("ARC9", "DermaDefaultBold", 48, height - 94, accent)
     drawText(Visuals.GetDisplayName(context.ir, context.swep), "DermaDefault", 48, height - 72, color({208, 230, 235, 255}))
     drawText(tostring(context.clip) .. " / " .. tostring(context.reserve), provider.ammoFont, 48, height - 49, accent)
@@ -263,6 +314,7 @@ local function drawArcCWHUD(provider, context)
     end
 
     drawRect(width - 250, height - 90, 220, 54, color({0, 0, 0, 170}))
+    drawHUDMaterial(provider, "backgroundMaterial", width - 250, height - 90, 220, 54, 78)
     drawText(tostring(context.clip), provider.ammoFont, width - 232, height - 82, accent)
     drawText("/ " .. tostring(context.reserve), "DermaDefault", width - 175, height - 73, color({230, 230, 230, 230}))
     return true
@@ -284,6 +336,7 @@ local function drawSWBHUD(provider, context)
         return true
     end
 
+    drawHUDMaterial(provider, "bullet", width - 238, height - 91, 24, 24, 220)
     drawText(tostring(context.clip), provider.ammoFont, width - 84, height - 88, accent, TEXT_ALIGN_RIGHT)
     drawText("/ " .. tostring(context.reserve), "DermaDefaultBold", width - 82, height - 49, accent, TEXT_ALIGN_RIGHT)
     drawRect(width - 222, height - 38, 136, 3, color({0, 0, 0, 210}))
@@ -308,6 +361,7 @@ local function drawTacRPHUD(provider, context)
     end
 
     drawRect(width - 290, 16, 264, 58, color({0, 0, 0, 150}))
+    drawHUDMaterial(provider, "backgroundMaterial", width - 290, 16, 264, 58, 76)
     drawText(Visuals.GetDisplayName(context.ir, context.swep), "DermaDefaultBold", width - 274, 25, color({255, 255, 255, 255}))
     drawText(tostring(context.clip) .. " / " .. tostring(context.reserve), provider.ammoFont, width - 274, 47, accent)
     return true
@@ -397,6 +451,15 @@ register("ft", {
     ammoFont = "FT_Default_24",
     hintFont = "DermaDefault",
     presentation = "neutral",
+    shell = {
+        mode = "frame",
+        layout = "sidebar",
+        corner = 0,
+        headerHeight = 38,
+        contentMargin = 0,
+        detail = {padding = 12},
+        button = {background = {20, 26, 32, 225}, hover = {94, 190, 235, 230}, selected = {94, 190, 235, 230}, corner = 0}
+    },
     stats = {
         {label = "Damage", path = "damage.base"},
         {label = "RPM", path = "fire.rpm"},
@@ -415,8 +478,28 @@ register("tfa", {
     ammoFont = "FT_TFA_Inter_48",
     hintFont = "DermaDefault",
     presentation = "tfa",
+    hud = {backgroundMaterial = "ft_base/providers/tfa/inspectionhud/hex"},
     iconMaterial = "ft_base/providers/tfa/inspectionhud/selector_bar",
     preview = {height = 240, fov = 45, camera = {48, 48, 34}, lookAt = {0, 0, 0}},
+    shell = {
+        mode = "fullscreen",
+        layout = "tfa",
+        background = {8, 10, 13, 238},
+        headerBackground = {10, 12, 15, 245},
+        headerHeight = 48,
+        headerMaterial = "ft_base/providers/tfa/inspectionhud/hex",
+        headerMaterialAlpha = 42,
+        sidebarMaterial = "ft_base/providers/tfa/inspectionhud/sidebar",
+        sidebar = {background = {18, 20, 23, 242}, material = "ft_base/providers/tfa/inspectionhud/sidebar", materialAlpha = 125},
+        detail = {background = {12, 14, 17, 205}, padding = 18, previewHeight = 260, titleFont = "FT_TFA_Inter_24", valueFont = "FT_TFA_Inter_16", statsTitleFont = "FT_TFA_Inter_24", statsFont = "FT_TFA_Inter_16"},
+        slot = {height = 62, marginLeft = 8, marginTop = 8},
+        slotIcons = {default = "ft_base/providers/tfa/inspectionhud/qmark"},
+        button = {background = {31, 34, 38, 220}, hover = {239, 187, 61, 225}, selected = {239, 187, 61, 235}, text = {239, 187, 61, 255}, hoverText = {14, 15, 17, 255}, border = {239, 187, 61, 85}, selectedMaterial = "ft_base/providers/tfa/inspectionhud/selector_bar", selectedMaterialAlpha = 120, corner = 0},
+        removeLabel = "Remove attachment",
+        closeLabel = "X",
+        closeWidth = 44,
+        statsTitle = "Weapon statistics"
+    },
     slotOrder = {optic = 10, muzzle = 20, underbarrel = 30, stock = 40},
     stats = {{label = "Damage", path = "damage.base"}, {label = "RPM", path = "fire.rpm"}, {label = "Hip accuracy", path = "spread.hip"}, {label = "Iron accuracy", path = "spread.ads"}},
     DrawHUD = drawTFAHUD
@@ -428,12 +511,33 @@ register("mw", {
     sidebarWidth = 390,
     accent = {220, 137, 45, 255},
     muted = {17, 19, 21, 235},
-    font = "FT_MW_8MM6Z",
-    ammoFont = "FT_MW_8MM6Z_48",
+    font = "FT_MW_Conduit",
+    ammoFont = "FT_MW_BioSans_48",
     hintFont = "DermaDefault",
     presentation = "mw",
+    hud = {backgroundMaterial = "ft_base/providers/mw/mg/customizemenuopen"},
     iconMaterial = "ft_base/providers/mw/mg/customizemenuopen",
     preview = {height = 250, fov = 48, camera = {52, 52, 36}, lookAt = {0, 0, 0}},
+    shell = {
+        mode = "fullscreen",
+        layout = "mw",
+        background = {5, 7, 9, 238},
+        headerBackground = {7, 9, 11, 245},
+        headerHeight = 72,
+        titleAlign = "center",
+        headerMaterial = "ft_base/providers/mw/mg/customizemenuopen",
+        headerMaterialAlpha = 12,
+        sidebar = {background = {9, 12, 15, 232}, material = "ft_base/providers/mw/mw_logo", materialAlpha = 8},
+        detail = {background = {8, 10, 12, 212}, padding = 22, previewHeight = 280, titleFont = "FT_MW_BioSans_24", valueFont = "FT_MW_Conduit_16", statsTitleFont = "FT_MW_BioSans_24", statsFont = "FT_MW_BioSans_16"},
+        slot = {height = 58, marginLeft = 12, marginTop = 8},
+        slotIcons = {default = "ft_base/providers/mw/mg/customizemenuopen"},
+        button = {background = {17, 22, 26, 225}, hover = {220, 137, 45, 235}, selected = {220, 137, 45, 245}, text = {210, 217, 221, 255}, hoverText = {12, 14, 16, 255}, border = {220, 137, 45, 90}, selectedMaterial = "ft_base/providers/mw/mg/customizemenuopen", selectedMaterialAlpha = 42, corner = 0},
+        removeLabel = "Remove from gunsmith",
+        closeLabel = "CLOSE",
+        closeWidth = 72,
+        statsTitle = "GUNSMITH STATS",
+        previewHint = "Selected modifiers are previewed before installation."
+    },
     slotOrder = {optic = 10, barrel = 20, muzzle = 30, stock = 40},
     stats = {{label = "Damage", path = "damage.base"}, {label = "Effective range", path = "ballistics.damageCurve.maxRange"}, {label = "RPM", path = "fire.rpm"}, {label = "Aim speed", path = "ads.speed"}},
     DrawHUD = drawMWHUD
@@ -449,7 +553,23 @@ register("swb", {
     ammoFont = "SWB_HUD48",
     hintFont = "SWB_HUD16",
     presentation = "swb",
+    hud = {bullet = "ft_base/providers/swb/bullet"},
     preview = {height = 200, fov = 44, camera = {42, 42, 30}, lookAt = {0, 0, 0}},
+    shell = {
+        mode = "fullscreen",
+        layout = "swb",
+        background = {6, 10, 7, 232},
+        headerBackground = {10, 16, 11, 242},
+        headerHeight = 40,
+        titleAlign = "left",
+        detail = {background = {8, 13, 9, 206}, padding = 14, previewHeight = 220, titleFont = "SWB_HUD24", valueFont = "SWB_HUD16", statsTitleFont = "SWB_HUD24", statsFont = "SWB_HUD16"},
+        slot = {height = 48, marginLeft = 8, marginTop = 6},
+        button = {background = {19, 30, 20, 222}, hover = {116, 196, 106, 230}, selected = {116, 196, 106, 240}, text = {180, 224, 174, 255}, hoverText = {9, 15, 10, 255}, border = {116, 196, 106, 85}, corner = 0},
+        removeLabel = "Remove attachment",
+        closeLabel = "X",
+        closeWidth = 42,
+        statsTitle = "WEAPON DATA"
+    },
     slotOrder = {optic = 10, stock = 20, muzzle = 30},
     stats = {{label = "Damage", path = "damage.base"}, {label = "Fire delay", path = "fire.delay"}, {label = "Hip spread", path = "spread.hip"}, {label = "Aim spread", path = "spread.ads"}},
     DrawHUD = drawSWBHUD
@@ -465,8 +585,28 @@ register("arc9", {
     ammoFont = "FT_ARC9_Venryn_24",
     hintFont = "DermaDefault",
     presentation = "arc9",
+    hud = {backgroundMaterial = "ft_base/providers/arc9/hud_bg.png"},
     iconMaterial = "ft_base/providers/arc9/ui/att.png",
     preview = {height = 230, fov = 46, camera = {46, 46, 32}, lookAt = {0, 0, 0}},
+    shell = {
+        mode = "fullscreen",
+        layout = "arc9",
+        background = {5, 12, 16, 236},
+        headerBackground = {8, 18, 23, 242},
+        headerHeight = 48,
+        headerMaterial = "ft_base/providers/arc9/hud_bg.png",
+        headerMaterialAlpha = 58,
+        titleAlign = "left",
+        slotBarHeight = 118,
+        detail = {background = {7, 16, 21, 212}, padding = 18, previewHeight = 260, titleFont = "FT_ARC9_Venryn_24", valueFont = "FT_ARC9_Venryn_16", statsTitleFont = "FT_ARC9_Venryn_24", statsFont = "FT_ARC9_Venryn_16"},
+        slot = {height = 78, width = 172, marginLeft = 7, marginTop = 12, marginRight = 3},
+        slotIcons = {default = "ft_base/providers/arc9/ui/3d_slot_empty.png"},
+        button = {background = {12, 30, 38, 232}, hover = {83, 196, 224, 235}, selected = {83, 196, 224, 245}, text = {170, 215, 226, 255}, hoverText = {7, 18, 22, 255}, border = {83, 196, 224, 95}, selectedMaterial = "ft_base/providers/arc9/ui/button_sel.png", selectedMaterialAlpha = 180, corner = 0},
+        removeLabel = "UNINSTALL",
+        closeLabel = "BACK",
+        closeWidth = 70,
+        statsTitle = "PERFORMANCE"
+    },
     slotOrder = {optic = 10, barrel = 20, underbarrel = 30, stock = 40},
     stats = {{label = "Damage max", path = "damage.base"}, {label = "Damage min", path = "damage.minimum"}, {label = "Muzzle velocity", path = "ballistics.muzzleVelocity"}, {label = "Recoil", path = "recoil.scalar"}},
     DrawHUD = drawARC9HUD
@@ -482,8 +622,25 @@ register("arccw", {
     ammoFont = "FT_ArcCW_Bahnschrift_24",
     hintFont = "DermaDefault",
     presentation = "arccw",
+    hud = {backgroundMaterial = "ft_base/providers/arccw/hud/grad.png"},
     iconMaterial = "ft_base/providers/arccw/hud/default.png",
     preview = {height = 235, fov = 45, camera = {45, 45, 31}, lookAt = {0, 0, 0}},
+    shell = {
+        mode = "fullscreen",
+        layout = "arccw",
+        background = {10, 8, 5, 235},
+        headerBackground = {16, 12, 8, 242},
+        headerHeight = 42,
+        titleAlign = "left",
+        detail = {background = {14, 11, 8, 210}, padding = 16, previewHeight = 250, titleFont = "FT_ArcCW_Bahnschrift_24", valueFont = "FT_ArcCW_Bahnschrift_16", statsTitleFont = "FT_ArcCW_Bahnschrift_24", statsFont = "FT_ArcCW_Bahnschrift_16"},
+        slot = {height = 54, marginLeft = 8, marginTop = 7},
+        slotIcons = {default = "ft_base/providers/arccw/hud/pickx_empty.png"},
+        button = {background = {36, 29, 21, 224}, hover = {226, 153, 73, 232}, selected = {226, 153, 73, 242}, text = {235, 205, 162, 255}, hoverText = {20, 14, 8, 255}, border = {226, 153, 73, 90}, selectedMaterial = "ft_base/providers/arccw/hud/pickx_filled.png", selectedMaterialAlpha = 160, corner = 0},
+        removeLabel = "UNINSTALL",
+        closeLabel = "X",
+        closeWidth = 44,
+        statsTitle = "WEAPON BALLISTICS"
+    },
     slotOrder = {optic = 10, barrel = 20, underbarrel = 30, stock = 40},
     stats = {{label = "Damage", path = "damage.base"}, {label = "Range", path = "ballistics.damageCurve.maxRange"}, {label = "Dispersion", path = "spread.hip"}, {label = "Recoil", path = "recoil.scalar"}},
     DrawHUD = drawArcCWHUD
@@ -499,8 +656,27 @@ register("tacrp", {
     ammoFont = "FT_TacRP_Myriad_24",
     hintFont = "DermaDefault",
     presentation = "tacrp",
+    hud = {backgroundMaterial = "ft_base/providers/tacrp/hud/vignette"},
     iconMaterial = "ft_base/providers/tacrp/hud/news.png",
     preview = {height = 220, fov = 45, camera = {44, 44, 31}, lookAt = {0, 0, 0}},
+    shell = {
+        mode = "fullscreen",
+        layout = "tacrp",
+        background = {12, 8, 8, 235},
+        headerBackground = {18, 10, 10, 242},
+        headerHeight = 44,
+        titleAlign = "right",
+        headerMaterial = "ft_base/providers/tacrp/hud/news.png",
+        headerMaterialAlpha = 38,
+        detail = {background = {20, 11, 11, 210}, material = "ft_base/providers/tacrp/hud/vignette", materialAlpha = 30, padding = 18, previewHeight = 248, titleFont = "FT_TacRP_Myriad_24", valueFont = "FT_TacRP_Myriad_16", statsTitleFont = "FT_TacRP_Myriad_24", statsFont = "FT_TacRP_Myriad_16"},
+        slot = {height = 52, marginLeft = 8, marginTop = 7},
+        slotIcons = {default = "ft_base/providers/tacrp/hud/dot.png"},
+        button = {background = {39, 18, 18, 224}, hover = {202, 89, 80, 235}, selected = {202, 89, 80, 245}, text = {243, 184, 178, 255}, hoverText = {22, 9, 9, 255}, border = {202, 89, 80, 90}, corner = 0},
+        removeLabel = "REMOVE",
+        closeLabel = "X",
+        closeWidth = 44,
+        statsTitle = "BALLISTICS"
+    },
     slotOrder = {optic = 10, barrel = 20, muzzle = 30, stock = 40},
     stats = {{label = "Damage max", path = "damage.base"}, {label = "Damage min", path = "damage.minimum"}, {label = "Armor penetration", path = "ballistics.armor.scale"}, {label = "Free aim", path = "camera.freeAim.radius"}},
     DrawHUD = drawTacRPHUD

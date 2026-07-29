@@ -33,6 +33,7 @@ local rules = {
 
     ["Delay"] = { ir = "fire.delay" },
     ["RPM"] = { ir = "fire.rpm" },
+    ["Automatic"] = { ir = "fire.automatic" },
     ["Firemodes"] = { ir = "fire.modes" },
     ["ChamberSize"] = { ir = "ammo.chamberSize" },
     ["Primary.ClipSize"] = { ir = "ammo.clipSize" },

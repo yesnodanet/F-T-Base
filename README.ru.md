@@ -382,6 +382,11 @@ FT.Recoil.Pattern = {
 от `ft_base`, описывает оружие в `SWEP.FTSource` и работает без внешней базы,
 чей синтаксис использует.
 
+Текущие шаблоны специально показывают актуальные возможности runtime:
+диалектные visual providers, poses и animations для inspect/customize,
+ADS или scope metadata, установленные по умолчанию attachments и clientside
+attachment-модели с bone/attachment anchors, skin/material/bodygroup overrides.
+
 Удерживая F&T оружие, нажмите Context Menu (`C`) или выполните `ft_customize`;
 также поддерживается Use + secondary attack. Запросы на установку attachments
 проходят server-side validation и пересобирают effective IR, не меняя source IR.

@@ -381,6 +381,11 @@ The addon includes copy-ready, spawnable templates: `ft_template_tfa`,
 `ft_base`, declares its weapon through `SWEP.FTSource`, and runs without the
 external weapon base whose syntax it resembles.
 
+The shipped templates intentionally exercise the current runtime surface:
+dialect-specific visual providers, inspect/customize poses and animations,
+ADS or scope metadata, default installed attachments, and clientside attachment
+models with bone or attachment anchors plus skin/material/bodygroup overrides.
+
 While holding an F&T weapon, press the Context Menu key (`C`) or run
 `ft_customize`; holding Use and pressing secondary attack is also supported.
 Attachment requests are validated
