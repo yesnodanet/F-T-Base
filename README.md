@@ -68,10 +68,10 @@ Weapon File
   -> Weapon Engine
 ```
 
-The ordinary F&T IR runtime does not execute external weapon-base logic.
-External namespaces are accepted only as source dialects and are translated
-into F&T IR; the explicitly named native fixtures are the separate test-mode
-exception described below.
+The F&T IR runtime does not execute external weapon-base logic. External
+namespaces are accepted only as source dialects and are translated into F&T IR.
+The explicitly named native fixtures below are still F&T weapons; they use an
+external base only as an optional client-side UI renderer.
 
 ## Namespace Mixing
 
@@ -383,14 +383,17 @@ The addon includes copy-ready, spawnable templates: `ft_template_tfa`,
 `ft_base`, declares its weapon through `SWEP.FTSource`, and runs without the
 external weapon base whose syntax it resembles.
 
-There is also a temporary native-template mode for testing the original base
-interfaces. The six `ft_native_template_*` fixtures inherit the real sample
-SWEPs (`tfa_ins2_cw_ar15`, `arc9_go_ak47`, `arccw_go_ak47`, `mg_mike4`,
-`tacrp_eo_masada`, and `swb_base`), so the corresponding external base supplies
-HUD, inspect/customization, attachments, animations, models, and ADS. These
-fixtures require their declared Workshop dependencies and never fall back to
-the F&T IR runtime. Use `FTBase.Compat.GetManifest()` to inspect the dependency
-map and `FTBase.Compat.Check()` for missing registered weapon classes.
+There is also a temporary native-template mode for rendering the original base
+interfaces. The six `ft_native_template_*` fixtures still extend `ft_base` and
+compile their own `SWEP.FTSource`; F&T owns gameplay, stats, recoil, ADS,
+reload, attachments, and networking. When the matching base/sample addon is
+installed on a client, the `FTUIBridge` uses its original HUD,
+inspect/customization, attachment presentation, and animations for that active
+F&T weapon. Vendor sample classes are never inherited and are not required by
+the dedicated server. Use `FTBase.Compat.GetManifest()` to inspect the map,
+`FTBase.Compat.Check("client")` for missing client UI classes, and
+`FTBase.Compat.Check("server")` to verify the dependency-free server
+contract.
 
 Install native dependencies into isolated server addon directories with:
 

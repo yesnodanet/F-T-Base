@@ -25,6 +25,27 @@ function Customization.Open(swep)
         return false
     end
 
+    -- Vendor bases are optional client-side renderers.  They receive a
+    -- restricted F&T facade, so opening their surface never changes the
+    -- gameplay/runtime owner of this weapon.
+    local bridge = FTBase.Runtime.UIBridge
+    local configured = bridge and bridge.GetConfigured
+        and bridge.GetConfigured(swep, "attachments")
+
+    if bridge and bridge.IsAvailable and bridge.Open then
+        local available = bridge.IsAvailable(swep, "attachments")
+
+        if available then
+            return bridge.Open(swep, "attachments")
+        end
+    end
+
+    -- Native fixtures deliberately do not substitute the F&T panel when their
+    -- declared vendor surface is unavailable (or explicitly disabled).
+    if swep.FTNative == true and configured ~= nil then
+        return false
+    end
+
     local provider = Customization.GetProvider(swep.FTRuntime, "attachments")
 
     if FTBase.Runtime.Inspect and FTBase.Runtime.Inspect.Open then
@@ -35,6 +56,12 @@ function Customization.Open(swep)
 end
 
 function Customization.Close(swep)
+    local bridge = FTBase.Runtime.UIBridge
+
+    if bridge and bridge.IsOpen and bridge.Close and bridge.IsOpen(swep) then
+        return bridge.Close(swep)
+    end
+
     local provider = swep and swep.FTRuntime and Customization.GetProvider(swep.FTRuntime, "attachments")
 
     if provider and provider.Close then
@@ -49,6 +76,12 @@ function Customization.Close(swep)
 end
 
 function Customization.Refresh(swep)
+    local bridge = FTBase.Runtime.UIBridge
+
+    if bridge and bridge.IsOpen and bridge.Refresh and bridge.IsOpen(swep) then
+        return bridge.Refresh(swep)
+    end
+
     local provider = swep and swep.FTRuntime and Customization.GetProvider(swep.FTRuntime, "attachments")
 
     if provider and provider.Refresh then

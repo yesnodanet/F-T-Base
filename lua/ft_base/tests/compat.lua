@@ -1,7 +1,9 @@
 local Compat = assert(FTBase.Compat, "FTBase.Compat was not loaded")
 
 local manifest = Compat.GetManifest()
-assert(type(manifest) == "table" and #manifest >= 6, "native dependency manifest must contain six dialects")
+assert(type(manifest) == "table" and #manifest >= 6,
+    "native dependency manifest must contain six dialects")
+
 local manifestById = Compat.GetManifestById()
 assert(type(manifestById) == "table" and type(manifestById.tfa) == "table",
     "native dependency manifest must also be addressable by dialect id")
@@ -15,11 +17,42 @@ local expected = {
     swb = {base = "swb_base", sample = nil, workshop = "1967187358"}
 }
 
+local function assertArrayEquals(actual, expectedValues, message)
+    assert(type(actual) == "table", message .. " must be an array")
+    assert(#actual == #expectedValues, message .. " has the wrong number of entries")
+
+    for index, expectedValue in ipairs(expectedValues) do
+        assert(actual[index] == expectedValue,
+            message .. " has the wrong entry at " .. index)
+    end
+end
+
 for id, values in pairs(expected) do
     local template = assert(Compat.GetNativeTemplate(id), "missing native template " .. id)
-    assert(template.required == true, id .. " must require its external base")
-    assert(template.baseClass == values.base, id .. " has the wrong base class")
-    assert(template.sampleClass == values.sample, id .. " has the wrong sample class")
+    local clientRequiredClasses = {values.base}
+
+    if id == "arc9" then
+        clientRequiredClasses[#clientRequiredClasses + 1] = "arc9_go_base"
+    end
+
+    if values.sample then
+        clientRequiredClasses[#clientRequiredClasses + 1] = values.sample
+    end
+
+    assert(template.required == true, id .. " must declare its client UI dependency")
+    assert(template.clientOnly == true and template.uiOnly == true,
+        id .. " must limit the external base to client UI")
+    assert(template.requiredOnServer == false,
+        id .. " must not require vendor classes on the dedicated server")
+    assert(template.gameplayOwner == "ft" and template.statsOwner == "ft"
+        and template.networkingOwner == "ft",
+        id .. " must retain F&T gameplay, stats, and networking")
+    assert(template.baseClass == values.base, id .. " has the wrong UI base class")
+    assert(template.sampleClass == values.sample, id .. " has the wrong UI sample class")
+    assertArrayEquals(template.clientRequiredClasses, clientRequiredClasses,
+        id .. " has the wrong client UI class manifest")
+    assertArrayEquals(template.serverRequiredClasses, {},
+        id .. " must have no dedicated-server vendor class requirements")
     assert(template.workshopIds[1] == values.workshop, id .. " has the wrong base Workshop ID")
     assert(Compat.GetNativeTemplate(template.templateClass) == template,
         id .. " must be addressable by template class")
@@ -37,9 +70,10 @@ weapons = {
     end
 }
 
-local ready = Compat.CheckNativeTemplate("tfa")
-assert(ready.ok and ready.status == "ready", "available native dependencies were rejected")
-assert(#ready.missing == 0 and #ready.available == 2, "ready native check has the wrong dependency counts")
+local ready = Compat.CheckNativeTemplate("tfa", "client")
+assert(ready.ok and ready.status == "ready", "available client UI dependencies were rejected")
+assert(#ready.missing == 0 and #ready.available == 2,
+    "ready client UI check has the wrong dependency counts")
 
 weapons = {
     GetStored = function()
@@ -47,31 +81,38 @@ weapons = {
     end
 }
 
-local missing = Compat.CheckNativeTemplate("tfa")
-assert(not missing.ok and missing.status == "missing_dependency", "missing native dependency was not reported")
+local serverReady = Compat.CheckNativeTemplate("tfa", "server")
+assert(serverReady.ok and serverReady.status == "ready",
+    "server mode must not require client-only vendor UI classes")
+assert(#serverReady.missing == 0 and #serverReady.available == 0,
+    "server mode unexpectedly inspected vendor UI classes")
+
+local missing = Compat.CheckNativeTemplate("tfa", "client")
+assert(not missing.ok and missing.status == "missing_dependency",
+    "missing client UI dependency was not reported")
 assert(#missing.missing == 2 and #missing.diagnostics == 2,
-    "missing native dependency diagnostics are incomplete")
+    "missing client UI dependency diagnostics are incomplete")
 assert(string.find(missing.diagnostic, "tfa_gun_base", 1, true),
-    "missing dependency diagnostic did not name the base class")
+    "missing client UI dependency diagnostic did not name the base class")
 
 weapons = oldWeapons
 
-local unknown = Compat.CheckNativeTemplate("does_not_exist")
+local unknown = Compat.CheckNativeTemplate("does_not_exist", "client")
 assert(not unknown.ok and unknown.status == "unknown_template", "unknown native template was accepted")
 assert(string.find(unknown.diagnostic, "does_not_exist", 1, true),
     "unknown template diagnostic did not include the requested id")
 
 local inline = Compat.CheckDependencies({
     id = "inline",
-    baseClass = "inline_base"
-})
-assert(not inline.ok and inline.status == "missing_dependency"
-    and inline.missing[1] == "inline_base",
-    "inline native dependency checks were not supported")
+    clientRequiredClasses = {"inline_client"},
+    serverRequiredClasses = {}
+}, "server")
+assert(inline.ok and inline.status == "ready" and #inline.missing == 0,
+    "inline server dependency checks must ignore client-only classes")
 
-local all = Compat.Check()
-assert(type(all.results) == "table" and #all.results >= 6,
-    "aggregate native dependency check returned fewer than six templates")
+local all = Compat.Check("server")
+assert(all.ok and type(all.results) == "table" and #all.results >= 6,
+    "aggregate server dependency check rejected client-only vendor classes")
 assert(type(all.byId.tfa) == "table" and type(all.diagnostics) == "table",
     "aggregate native dependency check omitted diagnostics")
 

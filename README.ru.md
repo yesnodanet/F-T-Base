@@ -69,10 +69,10 @@ Weapon File
   -> Weapon Engine
 ```
 
-Обычный F&T IR runtime не исполняет логику внешних weapon base. Внешние
-namespaces принимаются только как source dialects и переводятся в F&T IR;
-явно названные native-fixture являются отдельным исключением для тестового
-режима ниже.
+F&T IR runtime не исполняет логику внешних weapon base. Внешние namespaces
+принимаются только как source dialects и переводятся в F&T IR. Указанные ниже
+native-fixture остаются F&T-оружием и используют внешнюю базу только как
+необязательный клиентский UI-renderer.
 
 ## Смешивание namespaces
 
@@ -384,15 +384,17 @@ FT.Recoil.Pattern = {
 от `ft_base`, описывает оружие в `SWEP.FTSource` и работает без внешней базы,
 чей синтаксис использует.
 
-Для проверки оригинальных интерфейсов добавлен временный native-режим с
-шестью `ft_native_template_*`. Эти fixture-наследники используют реальные
-sample-SWEP (`tfa_ins2_cw_ar15`, `arc9_go_ak47`, `arccw_go_ak47`, `mg_mike4`,
-`tacrp_eo_masada` и `swb_base`), поэтому HUD, inspect/customization,
-attachments, animations, models и ADS предоставляет соответствующая внешняя
-база. Для них обязательны указанные Workshop dependencies; fallback на F&T IR
-runtime не используется. Карта зависимостей доступна через
-`FTBase.Compat.GetManifest()`, а `FTBase.Compat.Check()` сообщает об отсутствующих
-зарегистрированных weapon-классах.
+Для отображения оригинальных интерфейсов добавлен временный native-режим с
+шестью `ft_native_template_*`. Эти шаблоны всё равно наследуются от `ft_base`
+и компилируют собственный `SWEP.FTSource`: геймплей, характеристики, recoil,
+ADS, reload, attachments и networking остаются в F&T. Если на клиенте
+установлена подходящая база/sample-addon, `FTUIBridge` использует её исходные
+HUD, inspect/customization, отображение attachments и animations поверх
+активного F&T-оружия. Vendor sample-классы не наследуются и не требуются
+dedicated server. Карта зависимостей доступна через
+`FTBase.Compat.GetManifest()`, `FTBase.Compat.Check("client")` сообщает
+об отсутствующих client UI-классах, а `FTBase.Compat.Check("server")`
+проверяет независимый от vendor server-контракт.
 
 Установить native dependencies в отдельные addon-каталоги сервера можно так:
 

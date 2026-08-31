@@ -74,6 +74,7 @@ local files = {
     "ft_base/runtime/ui/context.lua",
     "ft_base/runtime/ui/renderers.lua",
     "ft_base/runtime/provider_host.lua",
+    "ft_base/runtime/ui_bridge.lua",
     "ft_base/runtime/visuals.lua",
     "ft_base/runtime/customization.lua",
     "ft_base/runtime/inspect.lua",

@@ -37,49 +37,55 @@ local nativeProfiles = {
     {
         class = "ft_native_template_tfa",
         dialect = "TFA",
-        base = "tfa_ins2_cw_ar15",
         sample = "tfa_ins2_cw_ar15",
         dependencyBase = "tfa_gun_base",
+        bridge = "tfa",
+        clientRequiredClasses = {"tfa_gun_base", "tfa_ins2_cw_ar15"},
         workshop = {"2840031720", "1676032134"}
     },
     {
         class = "ft_native_template_arc9",
         dialect = "ARC9",
-        base = "arc9_go_ak47",
         sample = "arc9_go_ak47",
         dependencyBase = "arc9_base",
+        bridge = "arc9",
+        clientRequiredClasses = {"arc9_base", "arc9_go_base", "arc9_go_ak47"},
         workshop = {"2910505837", "2910537020"}
     },
     {
         class = "ft_native_template_arccw",
         dialect = "ArcCW",
-        base = "arccw_go_ak47",
         sample = "arccw_go_ak47",
         dependencyBase = "arccw_base",
+        bridge = "arccw",
+        clientRequiredClasses = {"arccw_base", "arccw_go_ak47"},
         workshop = {"2131057232", "2257255110"}
     },
     {
         class = "ft_native_template_mw",
         dialect = "MW",
-        base = "mg_mike4",
         sample = "mg_mike4",
         dependencyBase = "mg_base",
+        bridge = "mw",
+        clientRequiredClasses = {"mg_base", "mg_mike4"},
         workshop = {"2459720887", "2528829149"}
     },
     {
         class = "ft_native_template_tacrp",
         dialect = "TacRP",
-        base = "tacrp_eo_masada",
         sample = "tacrp_eo_masada",
         dependencyBase = "tacrp_base",
+        bridge = "tacrp",
+        clientRequiredClasses = {"tacrp_base", "tacrp_eo_masada"},
         workshop = {"3734712166", "3271554982"}
     },
     {
         class = "ft_native_template_swb",
         dialect = "SWB",
-        base = "swb_base",
         sample = nil,
         dependencyBase = "swb_base",
+        bridge = "swb",
+        clientRequiredClasses = {"swb_base"},
         workshop = {"1967187358"}
     }
 }
@@ -107,6 +113,16 @@ local function includeNativeDefinition(className)
 
     assert(ok, tostring(message))
     return definition
+end
+
+local function assertArrayEquals(actual, expected, message)
+    assert(type(actual) == "table", message .. " must be an array")
+    assert(#actual == #expected, message .. " has the wrong number of entries")
+
+    for index, expectedValue in ipairs(expected) do
+        assert(actual[index] == expectedValue,
+            message .. " has the wrong entry at " .. index)
+    end
 end
 
 local function assertPose(ir, path, className)
@@ -217,8 +233,22 @@ for _, profile in ipairs(nativeProfiles) do
     assert(definition.FTNative == true, profile.class .. " must be marked as a native template")
     assert(definition.FTNativeDialect == profile.dialect,
         profile.class .. " declared the wrong native dialect")
-    assert(definition.Base == profile.base,
-        profile.class .. " must inherit the real sample weapon class")
+    assert(definition.Base == "ft_base",
+        profile.class .. " must run through the F&T base")
+    assert(type(definition.FTSource) == "string" and definition.FTSource ~= "",
+        profile.class .. " must declare an F&T source definition")
+    assert(type(definition.FTUIBridge) == "table",
+        profile.class .. " must declare a client UI bridge")
+    assert(definition.FTUIBridge.provider == profile.bridge,
+        profile.class .. " selected the wrong client UI bridge")
+    assert(definition.FTUIBridge.clientOnly == true and definition.FTUIBridge.uiOnly == true,
+        profile.class .. " must expose the vendor only as a client UI dependency")
+
+    local result = FTBase.Compiler.CompileSource(definition.FTSource, {name = profile.class})
+    assert(not result.report:HasErrors(), profile.class .. " F&T source did not compile\n" .. result.report:ToString())
+    assert(type(result.ir) == "table" and type(result.ir.ui) == "table",
+        profile.class .. " did not compile to F&T IR")
+
     assert(type(dependency) == "table", profile.class .. " is missing FTNativeDependency metadata")
     assert(dependency.templateClass == profile.class,
         profile.class .. " metadata has the wrong template class")
@@ -226,6 +256,19 @@ for _, profile in ipairs(nativeProfiles) do
         profile.class .. " metadata has the wrong sample class")
     assert(dependency.baseClass == profile.dependencyBase,
         profile.class .. " metadata has the wrong base dependency")
+    assert(dependency.clientOnly == true and dependency.uiOnly == true,
+        profile.class .. " metadata must limit vendor code to client UI")
+    assert(dependency.requiredOnServer == false,
+        profile.class .. " must not require vendor classes on the server")
+    assert(dependency.gameplayOwner == "ft" and dependency.statsOwner == "ft"
+        and dependency.networkingOwner == "ft",
+        profile.class .. " must retain F&T gameplay, stat, and networking ownership")
+    assertArrayEquals(dependency.requiredClasses, profile.clientRequiredClasses,
+        profile.class .. " vendor UI dependency metadata")
+    assertArrayEquals(dependency.clientRequiredClasses, profile.clientRequiredClasses,
+        profile.class .. " client UI dependency metadata")
+    assertArrayEquals(dependency.serverRequiredClasses, {},
+        profile.class .. " server dependency metadata")
     assert(type(dependency.workshop) == "table" and #dependency.workshop == #profile.workshop,
         profile.class .. " metadata has the wrong Workshop dependency count")
 

@@ -22,13 +22,22 @@ weapon entity is created. No external weapon base needs to be installed.
 
 ## Temporary Native Templates
 
-The addon also ships six `ft_native_template_*` fixtures. These are deliberately
-different from the IR templates above: each fixture inherits the real sample
-SWEP, so the external base owns its HUD, inspect/customization screen,
-attachments, animations, models, and ADS behavior. F&T does not replace those
-hooks and does not provide an IR fallback when a native dependency is missing.
+The addon also ships six `ft_native_template_*` fixtures. They remain ordinary
+F&T weapons: each one inherits `ft_base`, compiles its own `SWEP.FTSource` to
+F&T IR, and keeps firing, recoil, ADS, reload, attachment state, statistics,
+and server networking in the F&T runtime. On a client with the matching
+external addon installed, `SWEP.FTUIBridge` opens that base's original HUD,
+inspect/customization panel, and presentation over the active F&T weapon.
 
-| Template | Native base/sample | Workshop dependencies | Declared surface |
+The external classes are client-only UI dependencies, not SWEP parents. The
+bridge projects the F&T attachment state into the vendor UI and routes an
+install/remove action back through F&T's existing `{slotId, attachmentId}`
+network request and server validation. Vendor weapon gameplay hooks, stats,
+and vendor network messages are never adopted. If the client dependency is
+absent, the bridge reports that the vendor interface is unavailable; it does
+not turn the template into a vendor weapon.
+
+| Template | Client UI base/sample | Workshop dependencies | Declared surface |
 | --- | --- | --- | --- |
 | `ft_native_template_tfa` | `tfa_ins2_cw_ar15` | `2840031720`, `1676032134` | HUD, inspect, customization, attachments, presentation |
 | `ft_native_template_arc9` | `arc9_go_ak47` | `2910505837`, `2910537020` | HUD, inspect, customization, attachments, presentation |
@@ -37,17 +46,21 @@ hooks and does not provide an IR fallback when a native dependency is missing.
 | `ft_native_template_tacrp` | `tacrp_eo_masada` | `3734712166`, `3271554982` | HUD, inspect, customization, attachments, presentation |
 | `ft_native_template_swb` | `swb_base` | `1967187358` | HUD, ADS, presentation; no customization claim |
 
-Native dependencies are installed outside this repository. The compatibility
+Native UI dependencies are installed outside this repository. The compatibility
 registry is available as `FTBase.Compat`; `GetManifest()` returns the stable
-Workshop/base/sample manifest and `Check()` reports unavailable weapon classes.
-Use `tools/server/install_native_dependencies.ps1` to copy the prepared addon
+Workshop/base/sample manifest. `Check("client")` diagnoses client UI
+classes, while `Check("server")` intentionally succeeds without an
+external base because all shipped native templates declare
+`serverRequiredClasses = {}`. Use
+`tools/server/install_native_dependencies.ps1` to copy the prepared addon
 snapshots from `C:\Users\ameri\AppData\Local\Temp\gmpublisher\bases` into
-separate `ft_native_dep_*` addon directories. The installer only removes those
-known directories and `ft_base_visual_test` when `-Clean` is supplied.
+separate `ft_native_dep_*` addon directories for client UI testing. The
+installer only removes those known directories and `ft_base_visual_test` when
+`-Clean` is supplied.
 
-The native templates are intended for client/server integration checks while
-the UI is being transferred into F&T providers. Do not mix their addon folders
-with raw vendor snapshots or with the ordinary F&T test addon.
+The native templates are intended for client UI integration checks while the UI
+is being transferred into F&T providers. Do not mix their addon folders with
+raw vendor snapshots or with the ordinary F&T test addon.
 
 ## Creating A Weapon
 

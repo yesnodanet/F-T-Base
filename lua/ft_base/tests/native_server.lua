@@ -21,17 +21,29 @@ local function stored(className)
     return ok and value or nil
 end
 
-local dependencyCheck = Compat.Check()
+local dependencyCheck = Compat.Check(nil, "server")
 assert(dependencyCheck.ok, Compat.FormatDiagnostics(dependencyCheck))
 
 for _, entry in ipairs(manifest) do
     assert(type(entry.templateClass) == "string", "native manifest entry has no template class")
-    assert(stored(entry.templateClass) ~= nil,
-        "native template class was not registered: " .. entry.templateClass)
+    assert(entry.requiredOnServer == false and entry.clientOnly == true and entry.uiOnly == true,
+        "native template must keep vendor UI dependencies client-only: " .. entry.templateClass)
+    assert(type(entry.serverRequiredClasses) == "table" and #entry.serverRequiredClasses == 0,
+        "native template unexpectedly requires a vendor class on the server: " .. entry.templateClass)
+    assert(type(entry.clientRequiredClasses) == "table" and #entry.clientRequiredClasses > 0,
+        "native template is missing client UI dependency metadata: " .. entry.templateClass)
 
-    for _, requiredClass in ipairs(entry.requiredClasses or {}) do
+    local definition = stored(entry.templateClass)
+    assert(definition ~= nil,
+        "native template class was not registered: " .. entry.templateClass)
+    assert(definition.Base == "ft_base",
+        "native template must inherit the F&T base: " .. entry.templateClass)
+    assert(type(definition.FTSource) == "string" and definition.FTSource ~= "",
+        "native template is missing its F&T source: " .. entry.templateClass)
+
+    for _, requiredClass in ipairs(entry.serverRequiredClasses or {}) do
         assert(stored(requiredClass) ~= nil,
-            "native dependency class was not registered: " .. requiredClass)
+            "required server class was not registered: " .. requiredClass)
     end
 
     local weapon = ents.Create(entry.templateClass)
@@ -43,12 +55,15 @@ for _, entry in ipairs(manifest) do
     end)
 
     local stillValid = IsValid(weapon)
+    local runtime = stillValid and weapon.FTRuntime or nil
     if stillValid then
         weapon:Remove()
     end
 
     assert(spawned and stillValid,
         "native template could not be spawned: " .. entry.templateClass .. " (" .. tostring(spawnError) .. ")")
+    assert(runtime ~= nil,
+        "native template did not initialize the F&T runtime: " .. entry.templateClass)
 end
 
 print("F&T native dependency server test passed")

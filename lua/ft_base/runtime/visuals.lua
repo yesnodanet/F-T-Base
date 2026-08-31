@@ -435,6 +435,25 @@ function Visuals.DrawHUD(swep)
         return false
     end
 
+    -- When its optional client dependency is mounted, the selected dialect
+    -- renders its original HUD through the restricted F&T UI facade.  F&T
+    -- remains the source of ammo, stats, attachment state, and networking.
+    local bridge = FTBase.Runtime.UIBridge
+    local configured = bridge and bridge.GetConfigured
+        and bridge.GetConfigured(swep, "hud")
+
+    if bridge and bridge.IsAvailable and bridge.DrawHUD then
+        local available = bridge.IsAvailable(swep, "hud")
+
+        if available and bridge.DrawHUD(swep) then
+            return true
+        end
+    end
+
+    if swep.FTNative == true and configured ~= nil then
+        return false
+    end
+
     local context = hudContext(swep)
 
     if not context.ir then

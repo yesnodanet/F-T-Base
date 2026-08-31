@@ -15,11 +15,12 @@ srcds.exe -console -condebug -game garrysmod +servercfgfile ft_base_test.cfg +ma
 
 The local connection and RCON password is `ft_base_visual_test`. Source loads
 the server config after mounting addons, so it runs the smoke, compiler,
-compatibility, and runtime regression suites against the active map. Change both
+compatibility, runtime, template, and native-template server regression suites
+against the active map. Change both
 `sv_password` and `rcon_password` before making the server reachable outside the
-local network. The server does not mount
-TFA, ARC9, ArcCW, MW, SWB, or TacRP; this verifies that visual providers have no
-external runtime dependency. Connect a local GMod client and spawn each
+local network. No TFA, ARC9, ArcCW, MW, SWB, or TacRP addon needs to be mounted
+for this run; it verifies that visual providers and all F&T weapon gameplay have
+no external runtime dependency. Connect a local GMod client and spawn each
 `ft_template_*` weapon to review HUD, inspect, and attachment UI.
 
 To rerun the smoke test without restarting, execute `exec ft_base_test.cfg`
@@ -27,10 +28,25 @@ through local Source RCON.
 
 ## Native template mode
 
-Native fixtures intentionally inherit the external sample SWEP and therefore
-require the matching base and Workshop sample addon on both server and client.
-Install the prepared snapshots into isolated addon folders, clean the previous
-F&T test/native folders, and run the native suite with:
+Native fixtures inherit `ft_base`, not an external sample SWEP. Their
+`SWEP.FTSource`, gameplay, stats, attachment state, and networking run entirely
+in F&T. The matching base/sample addon is only required on a client that should
+render the vendor HUD, inspect, or customization UI. The dedicated-server suite
+therefore does not require or validate vendor classes.
+
+The normal dedicated command always includes
+`lua/ft_base/tests/native_server.lua`; it verifies that all six native
+templates spawn with `ft_base` and F&T runtime state while no vendor class is
+required. Run it without any vendor addon directories:
+
+```powershell
+$env:GARRYSMOD_SERVER_ROOT = "D:\CMD_STEAM\steamapps\common\GarrysModDS\garrysmod"
+npm.cmd run test:gmod -- -CleanAddon
+```
+
+For a separate client UI pass, install the prepared snapshots into isolated
+addon folders. This is optional for the server test and only prepares the
+external base/sample assets for a client that joins the test server:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tools/server/install_native_dependencies.ps1 `
@@ -38,21 +54,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File tools/server/install_native_
   -SourceRoot "C:\Users\ameri\AppData\Local\Temp\gmpublisher\bases" `
   -Clean
 
-$env:GARRYSMOD_SERVER_ROOT = "D:\CMD_STEAM\steamapps\common\GarrysModDS\garrysmod"
-npm.cmd run test:gmod -- -UseInstalledNativeDependencies -CleanAddon
 ```
 
-Alternatively, omit the separate installer and pass
-`-InstallNativeDependencies -CleanAddon` to the runner; it performs the same
-validated copy before starting `srcds`. `run-gmod-tests.ps1` selects
-`ft_base_native_test.cfg` for native mode. That
-configuration runs `lua/ft_base/tests/native_server.lua`, which checks every
-manifest dependency, verifies registration of every native template, and
-creates/spawns/removes each `ft_native_template_*`. Without
-`-InstallNativeDependencies`, the runner uses the dependency-free F&T config.
-Only the exact `ft_base_visual_test` addon (and the `ft_native_dep_*` directories
-when `-Clean` is used) is eligible for cleanup; unrelated addons are left
-untouched.
+`-InstallNativeDependencies` remains available on the runner as a convenience
+for that explicit client-asset deployment. It does not change the dedicated
+test config or make a vendor class a server requirement. Only the exact
+`ft_base_visual_test` addon (and the `ft_native_dep_*` directories when
+`-Clean` is used) is eligible for cleanup; unrelated addons are left untouched.
 
 ## CI and headless checks
 

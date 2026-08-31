@@ -109,8 +109,71 @@ local function mountProviderUI(frame, context)
     return created ~= false and created ~= nil
 end
 
+local function isInspectBridgeOpen(swep)
+    local bridge = FTBase.Runtime.UIBridge
+
+    if not swep or not bridge or not bridge.IsOpen
+        or not bridge.IsOpen(swep) then
+        return false
+    end
+
+    local configured = bridge.GetConfigured
+        and bridge.GetConfigured(swep, "inspect")
+
+    if configured == nil or configured == "none" then
+        return false
+    end
+
+    if bridge.IsBridgeWeapon then
+        return bridge.IsBridgeWeapon(swep, configured)
+    end
+
+    return true
+end
+
 function Inspect.Open(swep, providerId)
-    if not CLIENT or not vgui or not validWeapon(swep) then
+    if not CLIENT or not validWeapon(swep) then
+        return false
+    end
+
+    -- A configured vendor bridge owns only the visible UI.  It receives the
+    -- active F&T SWEP and delegates install/remove back through F&T networking.
+    local bridge = FTBase.Runtime.UIBridge
+    local configured = bridge and bridge.GetConfigured
+        and bridge.GetConfigured(swep, "inspect")
+
+    if bridge and bridge.IsAvailable and bridge.Open then
+        local available = bridge.IsAvailable(swep, "inspect")
+
+        if available then
+            if bridge.IsOpen and bridge.IsOpen(swep) then
+                -- A mixed profile may already have its attachment provider
+                -- open (for example MW) while inspection is owned by another
+                -- provider (for example TFA).  Refresh only when the active
+                -- bridge is the requested inspect provider; otherwise close
+                -- that surface before switching domains.
+                local sameProvider = not bridge.IsBridgeWeapon
+                    or bridge.IsBridgeWeapon(swep, configured)
+
+                if sameProvider then
+                    return bridge.Refresh and bridge.Refresh(swep) or true
+                end
+
+                if bridge.Close then
+                    bridge.Close(swep)
+                end
+            end
+
+            Inspect.Close()
+            return bridge.Open(swep, "inspect")
+        end
+    end
+
+    if swep.FTNative == true and configured ~= nil then
+        return false
+    end
+
+    if not vgui then
         return false
     end
 
@@ -225,6 +288,12 @@ function Inspect.Open(swep, providerId)
 end
 
 function Inspect.Close(swep)
+    local bridge = FTBase.Runtime.UIBridge
+
+    if swep and bridge and bridge.Close and isInspectBridgeOpen(swep) then
+        return bridge.Close(swep)
+    end
+
     local frame = Inspect.Active
 
     if not validPanel(frame) then
@@ -241,11 +310,15 @@ function Inspect.Close(swep)
 end
 
 function Inspect.IsOpen(swep)
+    if isInspectBridgeOpen(swep) then
+        return true
+    end
+
     return validPanel(Inspect.Active) and (not swep or Inspect.Active.FTWeapon == swep)
 end
 
 function Inspect.Toggle(swep)
-    if validPanel(Inspect.Active) and Inspect.Active.FTWeapon == swep then
+    if Inspect.IsOpen(swep) then
         Inspect.Close(swep)
         return false
     end
@@ -327,6 +400,12 @@ function Inspect.UpdateInput(swep)
 end
 
 function Inspect.Refresh(swep)
+    local bridge = FTBase.Runtime.UIBridge
+
+    if bridge and bridge.Refresh and isInspectBridgeOpen(swep) then
+        return bridge.Refresh(swep)
+    end
+
     local frame = Inspect.Active
 
     if not validPanel(frame) or frame.FTWeapon ~= swep then

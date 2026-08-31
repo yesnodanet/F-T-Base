@@ -78,29 +78,54 @@ local function normalize(spec, idHint)
         result.baseClass = tostring(result.baseClass)
     end
 
-    local required = {}
-    local seen = {}
+    local declaredRequired = copy(result.requiredClasses or {})
+    local declaredClientRequired = copy(result.clientRequiredClasses or declaredRequired)
+    local declaredServerRequired = copy(result.serverRequiredClasses or {})
 
-    local function addRequired(className)
-        if type(className) ~= "string" or className == "" or seen[className] then
-            return
+    local function normalizeClasses(values, includeVendorClasses)
+        local required = {}
+        local seen = {}
+
+        local function addRequired(className)
+            if type(className) ~= "string" or className == "" or seen[className] then
+                return
+            end
+
+            seen[className] = true
+            required[#required + 1] = className
         end
 
-        seen[className] = true
-        required[#required + 1] = className
+        for _, className in ipairs(values or {}) do
+            addRequired(className)
+        end
+
+        if includeVendorClasses then
+            addRequired(result.baseClass)
+
+            for _, className in ipairs(result.baseClasses or result.baseChain or {}) do
+                addRequired(className)
+            end
+
+            addRequired(result.sampleClass)
+        end
+
+        return required
     end
 
-    for _, className in ipairs(result.requiredClasses or {}) do
-        addRequired(className)
-    end
+    -- Native templates use vendor classes only to open a clientside UI.  Keep
+    -- the historical requiredClasses alias for tooling, but expose separate
+    -- realm lists so a dedicated server can run F&T gameplay without mounting
+    -- an external weapon base.
+    result.clientRequiredClasses = normalizeClasses(declaredClientRequired, true)
+    result.requiredClasses = copy(result.clientRequiredClasses)
 
-    for _, className in ipairs(result.baseClasses or result.baseChain or {}) do
-        addRequired(className)
+    if result.requiredOnServer == false or result.clientOnly == true or result.uiOnly == true then
+        result.serverRequiredClasses = normalizeClasses(declaredServerRequired, false)
+    else
+        local serverClasses = #declaredServerRequired > 0
+            and declaredServerRequired or declaredRequired
+        result.serverRequiredClasses = normalizeClasses(serverClasses, true)
     end
-
-    addRequired(result.baseClass)
-    addRequired(result.sampleClass)
-    result.requiredClasses = required
 
     local workshop = {}
 
@@ -306,15 +331,31 @@ end
 Compat.HasBaseClass = Compat.IsWeaponClassAvailable
 Compat.IsDependencyAvailable = Compat.IsWeaponClassAvailable
 
-local function checkResult(template, id)
+local function normalizeScope(scope)
+    scope = string.lower(tostring(scope or ""))
+
+    if scope == "server" or scope == "sv" then
+        return "server"
+    end
+
+    return "client"
+end
+
+local function checkResult(template, id, scope)
+    scope = normalizeScope(scope)
+    local requiredClasses = template and (scope == "server"
+        and template.serverRequiredClasses or template.clientRequiredClasses)
+        or {}
+
     local result = {
         ok = true,
         status = "ready",
         id = id,
+        scope = scope,
         templateClass = template and template.templateClass or nil,
         baseClass = template and template.baseClass or nil,
         sampleClass = template and template.sampleClass or nil,
-        requiredClasses = template and copy(template.requiredClasses or {}) or {},
+        requiredClasses = copy(requiredClasses or {}),
         workshop = template and copy(template.workshop or {}) or {},
         workshopIds = template and copy(template.workshopIds or {}) or {},
         available = {},
@@ -335,7 +376,7 @@ local function checkResult(template, id)
         return result
     end
 
-    for _, className in ipairs(template.requiredClasses or {}) do
+    for _, className in ipairs(requiredClasses or {}) do
         if Compat.IsWeaponClassAvailable(className) then
             result.available[#result.available + 1] = className
         else
@@ -364,8 +405,9 @@ local function checkResult(template, id)
             end
 
             local message = string.format(
-                "Native template %s requires unavailable weapon class %s",
+                "Native template %s requires unavailable %s weapon class %s",
                 tostring(template.id),
+                scope,
                 className
             )
             result.diagnostics[#result.diagnostics + 1] = message
@@ -374,7 +416,8 @@ local function checkResult(template, id)
     end
 
     if result.ok then
-        result.diagnostic = "Native template " .. tostring(template.id) .. " dependencies are available"
+        result.diagnostic = "Native template " .. tostring(template.id)
+            .. " " .. scope .. " dependencies are available"
         result.diagnostics[#result.diagnostics + 1] = result.diagnostic
         result.messages[#result.messages + 1] = result.diagnostic
     else
@@ -384,7 +427,7 @@ local function checkResult(template, id)
     return result
 end
 
-function Compat.CheckNativeTemplate(idOrTemplate)
+function Compat.CheckNativeTemplate(idOrTemplate, scope)
     local id = findId(idOrTemplate)
     local template = Compat.GetNativeTemplate(id)
 
@@ -393,15 +436,17 @@ function Compat.CheckNativeTemplate(idOrTemplate)
         id = template.id
     end
 
-    return checkResult(template, id)
+    return checkResult(template, id, scope)
 end
 
 Compat.CheckDependencies = Compat.CheckNativeTemplate
 
-function Compat.CheckAll()
+function Compat.CheckAll(scope)
+    scope = normalizeScope(scope)
     local result = {
         ok = true,
         status = "ready",
+        scope = scope,
         results = {},
         byId = {},
         missing = {},
@@ -409,7 +454,7 @@ function Compat.CheckAll()
     }
 
     for _, id in ipairs(order) do
-        local check = Compat.CheckNativeTemplate(id)
+        local check = Compat.CheckNativeTemplate(id, scope)
         result.results[#result.results + 1] = check
         result.byId[id] = check
 
@@ -430,12 +475,17 @@ end
 
 Compat.CheckAllNativeTemplates = Compat.CheckAll
 
-function Compat.Check(idOrTemplate)
-    if idOrTemplate == nil then
-        return Compat.CheckAll()
+function Compat.Check(idOrTemplate, scope)
+    if scope == nil and (idOrTemplate == "client" or idOrTemplate == "server"
+        or idOrTemplate == "sv") then
+        return Compat.CheckAll(idOrTemplate)
     end
 
-    return Compat.CheckNativeTemplate(idOrTemplate)
+    if idOrTemplate == nil then
+        return Compat.CheckAll(scope)
+    end
+
+    return Compat.CheckNativeTemplate(idOrTemplate, scope)
 end
 
 function Compat.FormatDiagnostics(result)
@@ -604,6 +654,15 @@ local defaults = {
 }
 
 for _, spec in ipairs(defaults) do
+    -- The manifest is available before SWEP files are registered, so the
+    -- default entries must already express the UI-only dependency boundary.
+    spec.clientOnly = true
+    spec.uiOnly = true
+    spec.requiredOnServer = false
+    spec.serverRequiredClasses = {}
+    spec.gameplayOwner = "ft"
+    spec.statsOwner = "ft"
+    spec.networkingOwner = "ft"
     Compat.RegisterNativeTemplate(spec)
 end
 

@@ -52,6 +52,17 @@ function checkSyntax(files) {
     process.stdout.write(`Lua syntax OK: ${files.length} files\n`);
 }
 
+function checkDedicatedServerConfig() {
+    const config = fs.readFileSync(path.join(root, "tools", "server", "ft_base_test.cfg"), "utf8");
+    const nativeSuite = 'lua_run include("ft_base/tests/native_server.lua")';
+
+    if (!config.includes(nativeSuite)) {
+        throw new Error("Dedicated-server config must run the dependency-free native template suite");
+    }
+
+    process.stdout.write("Dedicated server config OK: native template suite is dependency-free\n");
+}
+
 function runHeadlessTests() {
     const state = lauxlib.luaL_newstate();
     lualib.luaL_openlibs(state);
@@ -202,6 +213,7 @@ end
         "lua/ft_base/tests/compat.lua",
         "lua/ft_base/tests/runtime_regression.lua",
         "lua/ft_base/tests/templates.lua",
+        "lua/ft_base/tests/ui_bridge.lua",
         "tools/ft_smoke_test.lua"
     ]) {
         runFile(path.join(root, test));
@@ -210,6 +222,7 @@ end
 
 try {
     checkSyntax(findLuaFiles(root));
+    checkDedicatedServerConfig();
     runHeadlessTests();
     process.stdout.write("F&T headless test suite passed\n");
 } catch (error) {

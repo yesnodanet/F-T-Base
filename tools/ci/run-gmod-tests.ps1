@@ -79,8 +79,6 @@ if ($InstallNativeDependencies) {
     }
 }
 
-$NativeMode = $InstallNativeDependencies -or $UseInstalledNativeDependencies
-
 if ($UseInstalledNativeDependencies) {
     $requiredDependencyAddons = @(
         "ft_native_dep_tfa_base",
@@ -105,7 +103,10 @@ if ($UseInstalledNativeDependencies) {
     }
 }
 
-$ConfigName = if ($NativeMode) { "ft_base_native_test.cfg" } else { "ft_base_test.cfg" }
+# Native templates are F&T weapons on the dedicated server.  Their vendor
+# dependencies are client-only UI data, so the manifest regression must run in
+# every server test invocation, including an installation with no vendor addons.
+$ConfigName = "ft_base_test.cfg"
 $SourceConfig = Join-Path $RepositoryRoot (Join-Path "tools\server" $ConfigName)
 $TargetConfig = Join-Path $ServerRoot (Join-Path "cfg" $ConfigName)
 
@@ -170,12 +171,9 @@ try {
         "F&T core regression tests passed",
         "F&T native compatibility registry tests passed",
         "F&T runtime regression tests passed",
-        "F&T Base template regression passed"
+        "F&T Base template regression passed",
+        "F&T native dependency server test passed"
     )
-
-    if ($NativeMode) {
-        $Expected += "F&T native dependency server test passed"
-    }
     $Deadline = [DateTime]::UtcNow.AddSeconds($TimeoutSeconds)
 
     while ([DateTime]::UtcNow -lt $Deadline) {
