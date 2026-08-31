@@ -1,0 +1,13 @@
+{
+    "schemaVersion":  1,
+    "workshopId":  "2840031720",
+    "workshopUrl":  "https://steamcommunity.com/sharedfiles/filedetails/?id=2840031720",
+    "title":  "TFA Base",
+    "sourceDirectory":  "tfa_base_2840031720",
+    "payloadFileCount":  496,
+    "payloadBytes":  43374268,
+    "manifestAlgorithm":  "SHA-256",
+    "manifestFile":  "MANIFEST.sha256",
+    "manifestSha256":  "deaa33e21fad15822630a84c7bf534a8293fb8479c61b655183254e0ba3ea028",
+    "isolation":  "Reference snapshot only; this directory is outside the Garry\u0027s Mod lua/ load tree."
+}

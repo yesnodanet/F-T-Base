@@ -4,12 +4,35 @@ FTBase.Compiler = FTBase.Compiler or {}
 local Parser = {}
 Parser.__index = Parser
 
+local function hasThreeFiniteNumbers(args)
+    if #args ~= 3 then
+        return false
+    end
+
+    for index = 1, 3 do
+        local value = args[index]
+
+        if type(value) ~= "number" or value ~= value or value == math.huge or value == -math.huge then
+            return false
+        end
+    end
+
+    return true
+end
+
 function Parser.New(tokens, report)
-    return setmetatable({
+    local parser = setmetatable({
         tokens = tokens,
         index = 1,
-        report = report or FTBase.Report.New("parse")
+        report = report or FTBase.Report.New("parse"),
+        nodeCount = 1,
+        tableDepth = 0,
+        aborted = false,
+        lexerErrorsReported = false,
+        nodeLimitReported = false
     }, Parser)
+
+    return parser
 end
 
 function Parser:Token(offset)
@@ -46,7 +69,61 @@ end
 
 function Parser:Error(message, token)
     token = token or self:Token()
-    self.report:AddError(message .. " at " .. tostring(token.line) .. ":" .. tostring(token.column), token)
+    self.report:AddError(
+        message .. " at " .. tostring(token.source or "<source>") .. ":"
+            .. tostring(token.line) .. ":" .. tostring(token.column),
+        token
+    )
+end
+
+function Parser:CountNode(token)
+    if self.aborted then
+        return false
+    end
+
+    if self.nodeCount >= FTBase.Compiler.Limits.maxASTNodes then
+        if not self.nodeLimitReported then
+            self.nodeLimitReported = true
+            self:Error(
+                "AST node limit exceeded (maximum " .. tostring(FTBase.Compiler.Limits.maxASTNodes) .. ")",
+                token
+            )
+        end
+
+        self.aborted = true
+        return false
+    end
+
+    self.nodeCount = self.nodeCount + 1
+    return true
+end
+
+function Parser:ReportLexerErrors()
+    if self.lexerErrorsReported then
+        return
+    end
+
+    self.lexerErrorsReported = true
+
+    for _, token in ipairs(self.tokens or {}) do
+        if token.type == "error" then
+            self:Error(tostring(token.value or "Lexer error"), token)
+        end
+    end
+end
+
+function Parser:SkipBalanced(openValue, closeValue)
+    local depth = 1
+
+    while not self:Check("eof") and depth > 0 do
+        local token = self:Advance()
+
+        if token.type == "symbol" and token.value == openValue then
+            depth = depth + 1
+        elseif token.type == "symbol" and token.value == closeValue then
+            depth = depth - 1
+        end
+    end
 end
 
 function Parser:Synchronize()
@@ -105,22 +182,32 @@ function Parser:ParseCall(name)
     end
 
     if name == "Vector" then
+        if not hasThreeFiniteNumbers(args) then
+            self:Error("Vector expects exactly 3 finite numeric arguments")
+        end
+
         return {
             __type = "Vector",
-            x = tonumber(args[1]) or 0,
-            y = tonumber(args[2]) or 0,
-            z = tonumber(args[3]) or 0
+            x = args[1],
+            y = args[2],
+            z = args[3]
         }
     end
 
     if name == "Angle" then
+        if not hasThreeFiniteNumbers(args) then
+            self:Error("Angle expects exactly 3 finite numeric arguments")
+        end
+
         return {
             __type = "Angle",
-            p = tonumber(args[1]) or 0,
-            y = tonumber(args[2]) or 0,
-            r = tonumber(args[3]) or 0
+            p = args[1],
+            y = args[2],
+            r = args[3]
         }
     end
+
+    self:Error("Unknown call '" .. tostring(name) .. "'")
 
     return {
         __type = "Call",
@@ -130,6 +217,10 @@ function Parser:ParseCall(name)
 end
 
 function Parser:ParseValue()
+    if not self:CountNode(self:Token()) then
+        return nil
+    end
+
     if self:Match("symbol", "-") then
         if self:Check("number") then
             return -self:Advance().value
@@ -152,8 +243,17 @@ function Parser:ParseValue()
         return self:Advance().value
     end
 
-    if self:Match("symbol", "{") then
-        self.index = self.index - 1
+    if self:Check("symbol", "{") then
+        if self.tableDepth >= FTBase.Compiler.Limits.maxDepth then
+            local token = self:Advance()
+            self:Error(
+                "Maximum table nesting depth exceeded (maximum " .. tostring(FTBase.Compiler.Limits.maxDepth) .. ")",
+                token
+            )
+            self:SkipBalanced("{", "}")
+            return {}
+        end
+
         return self:ParseTable()
     end
 
@@ -218,13 +318,18 @@ function Parser:ParseTable()
     local arrayIndex = 1
 
     self:Match("symbol", "{")
+    self.tableDepth = self.tableDepth + 1
 
-    while not self:Check("eof") and not self:Check("symbol", "}") do
+    while not self.aborted and not self:Check("eof") and not self:Check("symbol", "}") do
         local key, hasKey = self:ParseTableKey()
         local value = self:ParseValue()
 
         if hasKey then
-            result[key] = value
+            if key == nil then
+                self:Error("Table key cannot be nil")
+            else
+                result[key] = value
+            end
         else
             result[arrayIndex] = value
             arrayIndex = arrayIndex + 1
@@ -240,13 +345,21 @@ function Parser:ParseTable()
     end
 
     if not self:Match("symbol", "}") then
-        self:Error("Expected '}' after table")
+        if not self.aborted then
+            self:Error("Expected '}' after table")
+        end
     end
+
+    self.tableDepth = math.max(0, self.tableDepth - 1)
 
     return result
 end
 
 function Parser:ParseUsing(token)
+    if not self:CountNode(token) then
+        return nil
+    end
+
     local stringToken = self:Match("string")
 
     if not stringToken then
@@ -273,6 +386,10 @@ function Parser:ParseAssignment()
         return nil
     end
 
+    if not self:CountNode(token) then
+        return nil
+    end
+
     return {
         type = "assign",
         path = path,
@@ -282,20 +399,33 @@ function Parser:ParseAssignment()
 end
 
 function Parser:Parse()
+    self:ReportLexerErrors()
+
     local ast = {
         type = "weapon",
         body = {}
     }
 
-    while not self:Check("eof") do
+    if self.report:HasErrors() then
+        return ast, self.report
+    end
+
+    while not self.aborted and not self:Check("eof") do
         local node = nil
 
         if self:Check("identifier", "using") then
             node = self:ParseUsing(self:Advance())
         elseif self:Check("identifier") then
             node = self:ParseAssignment()
+        elseif self:Check("error") then
+            -- Lexer errors are reported once up front.  Consume the token so
+            -- parser recovery cannot turn it into an ignored statement.
+            self:Advance()
+        elseif self:Check("symbol", ";") then
+            -- Semicolons are a supported legacy statement separator.
+            self:Advance()
         else
-            self.report:AddIgnored("Ignored token '" .. tostring(self:Token().value) .. "'", self:Token())
+            self:Error("Unexpected token '" .. tostring(self:Token().value) .. "'")
             self:Advance()
         end
 

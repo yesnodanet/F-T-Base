@@ -7,6 +7,63 @@ Adapter.__index = Adapter
 local Path = FTBase.Util.Path
 local Table = FTBase.Util.Table
 
+-- Attachment metadata is intentionally normalized without removing the
+-- original dialect fields. Providers consume the canonical keys while
+-- converters and diagnostics can still inspect the source-shaped table.
+local attachmentMetadataAliases = {
+    {"name", {"Name", "PrintName", "DisplayName", "Label", "SlotName"}},
+    {"shortName", {"ShortName", "ShortPrintName", "Abbrev", "Abbreviation"}},
+    {"category", {"Category", "CategoryName"}},
+    {"folder", {"Folder", "FolderName", "Menu"}},
+    {"description", {"Description", "Desc", "Tooltip"}},
+    {"pros", {"Pros", "Positive", "Positives", "Benefits"}},
+    {"cons", {"Cons", "Negative", "Negatives", "Drawbacks"}},
+    {"trivia", {"Trivia", "Notes", "FlavorText"}},
+    {"credits", {"Credits", "Credit", "Authors"}},
+    {"stats", {"Stats", "Stat", "StatChanges", "StatModifiers"}},
+    {"toggles", {"Toggles", "Toggle", "ToggleNames", "ToggleValues", "ToggleOptions", "ToggleStats"}},
+    {"sliders", {"Sliders", "Slider", "SliderData", "SliderValues"}},
+    {"icon", {"Icon", "IconMaterial", "IconPath"}}
+}
+
+local function normalizeAttachmentMetadata(value, seen)
+    if type(value) ~= "table" then
+        return value
+    end
+
+    if value.__type then
+        return value
+    end
+
+    seen = seen or {}
+
+    if seen[value] then
+        return seen[value]
+    end
+
+    local copy = {}
+    seen[value] = copy
+
+    for _, key in ipairs(Table.Keys(value)) do
+        copy[key] = normalizeAttachmentMetadata(value[key], seen)
+    end
+
+    for _, alias in ipairs(attachmentMetadataAliases) do
+        local canonical = alias[1]
+
+        if copy[canonical] == nil then
+            for _, sourceKey in ipairs(alias[2]) do
+                if copy[sourceKey] ~= nil then
+                    copy[canonical] = copy[sourceKey]
+                    break
+                end
+            end
+        end
+    end
+
+    return copy
+end
+
 local function normalize(path)
     return string.lower(Path.Join(path))
 end
@@ -158,5 +215,7 @@ end
 function FTBase.Adapters.Make(definition)
     return Adapter.New(definition)
 end
+
+FTBase.Adapters.NormalizeAttachmentMetadata = normalizeAttachmentMetadata
 
 FTBase.Adapters.Base = Adapter

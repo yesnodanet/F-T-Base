@@ -1,0 +1,285 @@
+function SWEP:ViewModelDrawn(ViewModel, flags)
+    local isDepthPass = ( bit.band( flags, STUDIO_SSAODEPTHTEXTURE ) != 0 || bit.band( flags, STUDIO_SHADOWDEPTHTEXTURE ) != 0 )
+    
+    if IsValid(self.QuickNadeModel) then
+        self.QuickNadeModel:DrawModel()
+    end
+
+    self:DrawCustomModel(false, false, isDepthPass)
+    
+    if ( isDepthPass ) then return end
+    
+    self:DrawLasers()
+
+    local newactiveeffects = {}
+    for _, effect in ipairs(self.ActiveEffects) do
+        if !IsValid(effect) then continue end
+        if !effect.VMContext then continue end
+
+        effect:DrawModel()
+
+        table.insert(newactiveeffects, effect)
+    end
+
+    self.ActiveEffects = newactiveeffects
+end
+
+function SWEP:DrawCustomModel(wm, custom_wm, isDepthPass)
+
+    if !wm and !IsValid(self:GetOwner()) then return end
+    if !wm and self:GetOwner():IsNPC() then return end
+
+    local mdl = self.VModel
+
+    if wm then
+        mdl = self.WModel
+    end
+
+    if !mdl then
+        self:SetupModel(wm, custom_wm)
+
+        mdl = self.VModel
+
+        if wm then
+            mdl = self.WModel
+        end
+    end
+
+    local parentmdl = self
+
+    if !wm then
+        parentmdl = self:GetVM()
+    elseif custom_wm then
+        parentmdl = custom_wm
+    end
+
+    if !mdl then return end
+
+    for _, model in pairs(mdl) do
+        if !IsValid(model) then continue end
+        local offset_pos = model.Pos
+        local offset_ang = model.Ang
+        local bone = model.Bone
+        local atttbl = {}
+        local slottbl = {}
+
+        if model.WMBase then
+            parentmdl = self:GetOwner()
+        end
+
+        parentmdl:SetupBones()
+        parentmdl:InvalidateBoneCache()
+
+        if !offset_pos or !offset_ang then
+            local slot = model.Slot
+            slottbl = self.Attachments[slot]
+            atttbl = TacRP.GetAttTable(self.Attachments[slot].Installed)
+
+            // Check for dual akimbo left/right positioning
+            local isLeft = model.IsLeftAttachment or model.IsLeftMuzzle
+            local isRight = model.IsRightAttachment or model.IsRightMuzzle
+
+            if isLeft and slottbl.Bone_L then
+                bone = slottbl.Bone_L
+                if wm then
+                    bone = slottbl.WMBone_L or slottbl.Bone_L
+                end
+            elseif isRight and slottbl.Bone_R then
+                bone = slottbl.Bone_R
+                if wm then
+                    bone = slottbl.WMBone_R or slottbl.Bone_R
+                end
+            else
+                bone = slottbl.Bone
+                if wm then
+                    bone = slottbl.WMBone or "ValveBiped.Bip01_R_Hand"
+                end
+            end
+
+            if isLeft and slottbl.Pos_VM_L then
+                offset_pos = slottbl.Pos_VM_L
+                offset_ang = slottbl.Ang_VM_L or slottbl.Ang_VM
+                if wm then
+                    offset_pos = slottbl.Pos_WM_L or slottbl.Pos_VM_L
+                    offset_ang = slottbl.Ang_WM_L or slottbl.Ang_VM_L or slottbl.Ang_WM
+                end
+            elseif isRight and slottbl.Pos_VM_R then
+                offset_pos = slottbl.Pos_VM_R
+                offset_ang = slottbl.Ang_VM_R or slottbl.Ang_VM
+                if wm then
+                    offset_pos = slottbl.Pos_WM_R or slottbl.Pos_VM_R
+                    offset_ang = slottbl.Ang_WM_R or slottbl.Ang_VM_R or slottbl.Ang_WM
+                end
+            else
+                offset_pos = slottbl.Pos_VM
+                offset_ang = slottbl.Ang_VM
+                if wm then
+                    offset_pos = slottbl.Pos_WM
+                    offset_ang = slottbl.Ang_WM
+                end
+            end
+
+            for _, ele in ipairs(self:GetElements()) do
+                if !ele.AttPosMods or !ele.AttPosMods[slot] then continue end
+                if wm then
+                    if ele.AttPosMods[slot].Pos_WM then
+                        offset_pos = ele.AttPosMods[slot].Pos_WM
+                    end
+                    if ele.AttPosMods[slot].Ang_WM then
+                        offset_ang = ele.AttPosMods[slot].Ang_WM
+                    end
+                    if ele.AttPosMods[slot].WMBone then
+                        bone = ele.AttPosMods[slot].WMBone
+                    end
+                else
+                    if ele.AttPosMods[slot].Pos_VM then
+                        offset_pos = ele.AttPosMods[slot].Pos_VM
+                    end
+                    if ele.AttPosMods[slot].Ang_VM then
+                        offset_ang = ele.AttPosMods[slot].Ang_VM
+                    end
+                    if ele.AttPosMods[slot].Bone then
+                        bone = ele.AttPosMods[slot].Bone
+                    end
+                end
+            end
+        end
+
+        if !bone then continue end
+
+        local boneindex = parentmdl:LookupBone(bone)
+        if !boneindex then continue end
+
+        local bonemat = parentmdl:GetBoneMatrix(boneindex)
+        if !bonemat then continue end
+
+        local bpos, bang
+        bpos = bonemat:GetTranslation()
+        bang = bonemat:GetAngles()
+
+        local apos, aang = bpos, bang
+
+        if offset_pos then
+            apos:Add(bang:Forward() * offset_pos.x)
+            apos:Add(bang:Right() * offset_pos.y)
+            apos:Add(bang:Up() * offset_pos.z)
+        end
+
+        if offset_ang then
+            aang:RotateAroundAxis(aang:Right(), offset_ang.p)
+            aang:RotateAroundAxis(aang:Up(), offset_ang.y)
+            aang:RotateAroundAxis(aang:Forward(), offset_ang.r)
+        end
+
+        local moffset = (atttbl.ModelOffset or Vector(0, 0, 0))
+        if wm then
+            moffset = moffset * (slottbl.WMScale or 1)
+        else
+            moffset = moffset * (slottbl.VMScale or 1)
+        end
+
+        apos:Add(aang:Forward() * moffset.x)
+        apos:Add(aang:Right() * moffset.y)
+        apos:Add(aang:Up() * moffset.z)
+
+        model:SetPos(apos)
+        model:SetAngles(aang)
+        model:SetRenderOrigin(apos)
+        model:SetRenderAngles(aang)
+
+        if model.IsHolosight and !wm and !isDepthPass then
+            cam.Start3D(EyePos(), EyeAngles(), self.ViewModelFOV, 0, 0, nil, nil, 1, 10000)
+            render.DepthRange(0.0, 0.1)
+            self:DoHolosight(model)
+            cam.End3D()
+            render.DepthRange(0.0, 0.1)
+        end
+
+        if !model.NoDraw then
+            model:DrawModel()
+        end
+    end
+
+    if !wm and !isDepthPass then
+        self:DrawFlashlightsVM()
+    end
+end
+
+function SWEP:PreDrawViewModel()
+    if self:GetValue("ScopeHideWeapon") and self:IsInScope() then
+        render.OverrideColorWriteEnable(true, false)
+    end
+
+    // Set shell color on viewmodel for matproxy
+    local vm = self:GetVM()
+    if IsValid(vm) then
+        vm.ShellColor = self:GetValue("ShellColor")
+    end
+
+    -- Apparently setting this will fix the viewmodel position and angle going all over the place in benchgun.
+    if TacRP.ConVars["dev_benchgun"]:GetBool() then
+        if self.OriginalViewModelFOV == nil then
+            self.OriginalViewModelFOV = self.ViewModelFOV
+        end
+        self.ViewModelFOV = self:GetOwner():GetFOV()
+    elseif self.OriginalViewModelFOV then
+        self.ViewModelFOV = self.OriginalViewModelFOV
+        self.OriginalViewModelFOV = nil
+    end
+    -- self.ViewModelFOV = self:GetViewModelFOV()
+
+    render.DepthRange(0.0, 0.1)
+end
+
+function SWEP:PostDrawViewModel(viewmodel, player, weapon, flags)
+    cam.IgnoreZ(false)
+
+    if self:GetValue("ScopeHideWeapon") and self:IsInScope() then
+        render.OverrideColorWriteEnable(false, false)
+    end
+
+    local isDepthPass = ( bit.band( flags, STUDIO_SSAODEPTHTEXTURE ) != 0 || bit.band( flags, STUDIO_SHADOWDEPTHTEXTURE ) != 0 )
+    if isDepthPass then return end
+
+    cam.Start3D()
+        cam.IgnoreZ(false)
+        local newpcfs = {}
+
+        for _, pcf in ipairs(self.PCFs) do
+            if IsValid(pcf) then
+                pcf:Render()
+                table.insert(newpcfs, pcf)
+            end
+        end
+
+        if !inrt then self.PCFs = newpcfs end
+
+        local newmzpcfs = {}
+
+        for _, pcf in ipairs(self.MuzzPCFs) do
+            if IsValid(pcf) then
+                pcf:Render()
+                table.insert(newmzpcfs, pcf)
+            end
+        end
+
+        if !inrt then self.MuzzPCFs = newmzpcfs end
+    cam.End3D()
+end
+
+--[[
+SWEP.SmoothedViewModelFOV = nil
+function SWEP:GetViewModelFOV()
+    local target = self.ViewModelFOV
+
+    if TacRP.ConVars["dev_benchgun"]:GetBool() then
+        target = self:GetOwner():GetFOV()
+    end
+
+    self.SmoothedViewModelFOV = self.SmoothedViewModelFOV or target
+    local diff = math.abs(target - self.SmoothedViewModelFOV)
+    self.SmoothedViewModelFOV = math.Approach(self.SmoothedViewModelFOV, target, diff * FrameTime() / 0.25)
+
+    return self.SmoothedViewModelFOV
+end
+]]

@@ -3,7 +3,7 @@ if SERVER then
 end
 
 SWEP.Base = "ft_base"
-SWEP.PrintName = "F&T Template - SWB Dialect"
+SWEP.PrintName = "F&T Template - SWB Native HUD"
 SWEP.Category = "F&T Base Templates"
 SWEP.Spawnable = true
 SWEP.AdminOnly = false
@@ -11,11 +11,15 @@ SWEP.AdminOnly = false
 SWEP.FTSource = [[
 using "SWB"
 
-SWB.PrintName = "F&T Template - SWB Dialect"
+FT.Visual.Default = "SWB"
+
+SWB.PrintName = "SWB Native HUD Fixture"
 SWB.Category = "F&T Base Templates"
+-- SWB snapshot has no sample weapon/model closure; stock SMG1 models keep this HUD-only fixture spawnable.
 SWB.ViewModel = "models/weapons/c_smg1.mdl"
 SWB.WorldModel = "models/weapons/w_smg1.mdl"
 SWB.HoldType = "smg"
+SWB.ViewModelFOV = 50
 
 SWB.Damage = 26
 SWB.NumShots = 1
@@ -31,48 +35,16 @@ SWB.MaxSpreadInc = 0.012
 SWB.FireSound = "Weapon_SMG1.Single"
 SWB.ReloadSound = "Weapon_SMG1.Reload"
 SWB.ReloadDuration = 2.35
-
 SWB.Recoil = 1
 SWB.KickUp = 0.7
 SWB.KickSide = 0.3
-SWB.RecoilPattern = {
-    {-0.08, 0.7},
-    {0.1, 0.82},
-    {-0.12, 0.94},
-    {0.13, 1.05}
-}
-
+SWB.ZoomAmount = 15
 SWB.AimFOV = 62
-SWB.Animations = {
-    fire = ACT_VM_PRIMARYATTACK,
-    reload = ACT_VM_RELOAD,
-    deploy = ACT_VM_DRAW
-}
-
-SWB.Attachments = {
-    { id = "optic", name = "Optic", type = "optic" },
-    { id = "stock", name = "Stock", type = "stock" }
-}
-
-SWB.AttachmentDefinitions = {
-    holo = {
-        name = "Holographic Sight",
-        description = "Improves aimed precision.",
-        type = "optic",
-        modifiers = {
-            ["spread.ads"] = { multiply = 0.72 }
-        }
-    },
-    light_stock = {
-        name = "Light Stock",
-        description = "Faster aim transition with less recoil recovery.",
-        type = "stock",
-        modifiers = {
-            ["ads.speed"] = { multiply = 1.2 },
-            ["recoil.scalar"] = { multiply = 0.9 }
-        }
-    }
-}
+SWB.AimPos = Vector(-5, -4.5, 1.8)
+SWB.AimAng = Angle(0, 0, 0)
+SWB.SpeedDec = 0.82
+SWB.DrawCrosshair = false
+SWB.DrawAmmo = true
 ]]
 
 FTBase.Runtime.Lifecycle.PrepareDefinition(SWEP)

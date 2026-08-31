@@ -1,0 +1,2 @@
+-- The supplied SWB snapshot references this optional file but does not ship it.
+-- Keep the native base loadable without inventing gameplay hooks.

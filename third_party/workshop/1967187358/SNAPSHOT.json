@@ -1,0 +1,13 @@
+{
+    "schemaVersion":  1,
+    "workshopId":  "1967187358",
+    "workshopUrl":  "https://steamcommunity.com/sharedfiles/filedetails/?id=1967187358",
+    "title":  "SWB",
+    "sourceDirectory":  "swb_1967187358",
+    "payloadFileCount":  233,
+    "payloadBytes":  23745980,
+    "manifestAlgorithm":  "SHA-256",
+    "manifestFile":  "MANIFEST.sha256",
+    "manifestSha256":  "b18e83dbca91a6c1231e68ae3e4cc44eeb2539fa3a438fac62259f62a62486d0",
+    "isolation":  "Reference snapshot only; this directory is outside the Garry\u0027s Mod lua/ load tree."
+}

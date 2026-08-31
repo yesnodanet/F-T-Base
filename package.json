@@ -1,0 +1,14 @@
+{
+  "name": "ft-base",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Compiler and runtime regression checks for F&T Base",
+  "scripts": {
+    "test": "node tools/ci/run-tests.js",
+    "test:gmod": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/ci/run-gmod-tests.ps1"
+  },
+  "devDependencies": {
+    "fengari": "0.1.5",
+    "luaparse": "0.3.1"
+  }
+}

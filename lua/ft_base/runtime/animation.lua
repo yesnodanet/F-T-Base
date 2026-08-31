@@ -28,19 +28,34 @@ local function resolveSequence(swep, sequence)
 end
 
 function Animation.NewState(ir)
+    ir = ir or {}
+    local animations = ir.animations or {}
+
     return {
         current = nil,
         layerWeights = {},
         reloadStage = 0,
-        events = ir.animations.events or {}
+        events = animations.events or {}
     }
 end
 
-function Animation.Play(swep, runtime, name)
-    runtime.animation.current = name
+function Animation.RefreshState(runtime, ir)
+    if not runtime then
+        return
+    end
 
-    local sequence = runtime.ir.animations.base and runtime.ir.animations.base[name]
-    sequence = resolveSequence(swep, sequence)
+    ir = ir or runtime.ir or {}
+    runtime.animation = runtime.animation or Animation.NewState(ir)
+    runtime.animation.events = ir.animations and ir.animations.events or {}
+end
+
+function Animation.PlaySequence(swep, runtime, name, configuredSequence)
+    if not runtime then
+        return nil
+    end
+
+    runtime.animation.current = name
+    local sequence = resolveSequence(swep, configuredSequence)
 
     if sequence and swep and swep.SendWeaponAnim then
         swep:SendWeaponAnim(sequence)
@@ -49,8 +64,19 @@ function Animation.Play(swep, runtime, name)
     return sequence
 end
 
+function Animation.Play(swep, runtime, name)
+    if not runtime then
+        return nil
+    end
+
+    local ir = FTBase.Runtime.Attachments.GetEffectiveIR(runtime) or runtime.ir or {}
+    local animations = ir.animations or {}
+    return Animation.PlaySequence(swep, runtime, name, animations.base and animations.base[name])
+end
+
 function Animation.GetReloadDuration(swep, runtime)
-    local configured = runtime.ir.animations and runtime.ir.animations.reloadDuration
+    local ir = runtime and (FTBase.Runtime.Attachments.GetEffectiveIR(runtime) or runtime.ir) or {}
+    local configured = ir.animations and ir.animations.reloadDuration
 
     if type(configured) == "number" and configured > 0 then
         return configured
@@ -68,7 +94,8 @@ function Animation.GetReloadDuration(swep, runtime)
 end
 
 function Animation.Event(runtime, name, payload)
-    local events = runtime.ir.animations.events or {}
+    local ir = runtime and (FTBase.Runtime.Attachments.GetEffectiveIR(runtime) or runtime.ir) or {}
+    local events = ir.animations and ir.animations.events or {}
     local handler = events[name]
 
     if type(handler) == "function" then

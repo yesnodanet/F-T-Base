@@ -73,16 +73,30 @@ local function applyModifier(value, modifier)
     return value
 end
 
-local function buildEffectiveIR(runtime)
+local function buildEffectiveIR(runtime, previewSlotId, previewAttachmentId)
     local effective = FTBase.IR.Clone(runtime.ir)
 
     for _, slot in ipairs(runtime.attachments.slots or {}) do
-        local modifiers = runtime.attachmentModifiers[slot.id]
+        local attachmentId = runtime.attachments.installed[slot.id]
+
+        if slot.id == previewSlotId then
+            attachmentId = previewAttachmentId
+        end
+
+        local definition = attachmentId
+            and runtime.ir.attachments
+            and runtime.ir.attachments.definitions
+            and runtime.ir.attachments.definitions[attachmentId]
+        local modifiers = definition and definition.modifiers
+
+        if slot.id ~= previewSlotId and not attachmentId and runtime.attachmentModifiers then
+            modifiers = runtime.attachmentModifiers[slot.id]
+        end
 
         for irPath, modifier in pairs(modifiers or {}) do
             local value = Path.Get(effective, irPath)
 
-            if value ~= nil then
+            if value ~= nil or type(modifier) ~= "table" or modifier.set ~= nil then
                 Path.Set(effective, irPath, applyModifier(value, modifier))
             end
         end
@@ -92,16 +106,18 @@ local function buildEffectiveIR(runtime)
 end
 
 function Attachments.NewState(ir)
+    ir = ir or {}
+    local attachments = ir.attachments or {}
     local state = {
         installed = {},
-        slots = FTBase.Util.Table.DeepCopy(ir.attachments.slots or {})
+        slots = FTBase.Util.Table.DeepCopy(attachments.slots or {})
     }
 
     for _, slot in ipairs(state.slots) do
         local attachmentId = slot.default or slot.defaultAttachment
-        local definition = attachmentId and (ir.attachments.definitions or {})[attachmentId]
+        local definition = attachmentId and (attachments.definitions or {})[attachmentId]
 
-        if definition and acceptsType(slot, definition) then
+        if definition and not definition.hidden and not definition.disabled and acceptsType(slot, definition) then
             state.installed[slot.id] = attachmentId
         end
     end
@@ -116,6 +132,10 @@ function Attachments.Install(runtime, slotId, attachmentId)
         return false, reason
     end
 
+    if runtime.attachments.installed[slotId] == attachmentId then
+        return false, "Attachment is already installed"
+    end
+
     runtime.attachments.installed[slotId] = attachmentId
     Attachments.RebuildModifiers(runtime)
     return true
@@ -124,6 +144,10 @@ end
 function Attachments.Uninstall(runtime, slotId)
     if not slotById(runtime.attachments.slots, slotId) then
         return false, "Unknown attachment slot"
+    end
+
+    if runtime.attachments.installed[slotId] == nil then
+        return false, "Attachment slot is already empty"
     end
 
     runtime.attachments.installed[slotId] = nil
@@ -171,20 +195,105 @@ function Attachments.GetEffectiveIR(runtime)
     return runtime and (runtime.effectiveIR or runtime.ir) or nil
 end
 
-function Attachments.RebuildModifiers(runtime)
-    runtime.attachmentModifiers = {}
+-- Build a temporary effective IR for UI preview without changing installed
+-- attachments, cooldowns, or server-owned state.  The candidate is validated
+-- against the same slot rules as an install request.
+function Attachments.PreviewIR(runtime, slotId, attachmentId)
+    if not runtime or not runtime.attachments then
+        return nil, "Weapon runtime is unavailable"
+    end
 
-    local definitions = runtime.ir.attachments.definitions or {}
+    if attachmentId ~= nil and attachmentId ~= "" then
+        local allowed, reason = Attachments.CanInstall(runtime, slotId, attachmentId)
 
-    for slotId, attachmentId in pairs(runtime.attachments.installed or {}) do
-        local definition = definitions[attachmentId]
-
-        if definition and definition.modifiers then
-            runtime.attachmentModifiers[slotId] = definition.modifiers
+        if not allowed then
+            return nil, reason
         end
     end
 
+    return buildEffectiveIR(runtime, slotId, attachmentId)
+end
+
+local function readPath(value, path)
+    if FTBase.Util and FTBase.Util.Path and FTBase.Util.Path.Get then
+        return FTBase.Util.Path.Get(value, path)
+    end
+
+    return nil
+end
+
+local function formatComparable(value)
+    if type(value) == "number" then
+        return value
+    end
+
+    if type(value) == "table" then
+        return FTBase.Util.Table.DeepCopy(value)
+    end
+
+    return value
+end
+
+function Attachments.GetStatDiff(baseIR, previewIR, paths)
+    local output = {}
+
+    for _, entry in ipairs(paths or {}) do
+        local path = type(entry) == "table" and entry.path or entry
+        local label = type(entry) == "table" and (entry.label or entry.name) or path
+
+        if type(path) == "string" and path ~= "" then
+            local before = formatComparable(readPath(baseIR, path))
+            local after = formatComparable(readPath(previewIR, path))
+
+            output[#output + 1] = {
+                path = path,
+                label = label or path,
+                before = before,
+                after = after,
+                changed = before ~= after
+            }
+        end
+    end
+
+    return output
+end
+
+function Attachments.RebuildModifiers(runtime)
+    if not runtime or not runtime.attachments then
+        return nil
+    end
+
+    runtime.attachmentModifiers = {}
+
+    local attachments = runtime.ir.attachments or {}
+    local definitions = attachments.definitions or {}
+    local installed = {}
+
+    for slotId, attachmentId in pairs(runtime.attachments.installed or {}) do
+        local definition = definitions[attachmentId]
+        local slot = slotById(runtime.attachments.slots, slotId)
+
+        if slot and definition and not definition.hidden and not definition.disabled and acceptsType(slot, definition) then
+            installed[slotId] = attachmentId
+
+            if definition.modifiers then
+                runtime.attachmentModifiers[slotId] = definition.modifiers
+            end
+        end
+    end
+
+    runtime.attachments.installed = installed
     runtime.effectiveIR = buildEffectiveIR(runtime)
+
+    if CLIENT and FTBase.Runtime.AttachmentVisuals then
+        FTBase.Runtime.AttachmentVisuals.Refresh(runtime)
+    end
+
+    if runtime.onEffectiveIRChanged then
+        runtime.onEffectiveIRChanged(runtime.effectiveIR)
+    end
+
+    return runtime.effectiveIR
 end
 
 function Attachments.ApplyNumber(runtime, irPath, baseValue)

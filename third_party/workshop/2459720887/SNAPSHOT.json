@@ -1,0 +1,13 @@
+{
+    "schemaVersion":  1,
+    "workshopId":  "2459720887",
+    "workshopUrl":  "https://steamcommunity.com/sharedfiles/filedetails/?id=2459720887",
+    "title":  "Modern Wokefare Base",
+    "sourceDirectory":  "modern_wokefare_base_2459720887",
+    "payloadFileCount":  3019,
+    "payloadBytes":  1078503018,
+    "manifestAlgorithm":  "SHA-256",
+    "manifestFile":  "MANIFEST.sha256",
+    "manifestSha256":  "2094913dc77817005ab7da4d87634cc1cbbcd9688aa24f8466f34473d4849460",
+    "isolation":  "Reference snapshot only; this directory is outside the Garry\u0027s Mod lua/ load tree."
+}

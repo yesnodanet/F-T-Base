@@ -28,8 +28,9 @@ This repository currently contains a playable vertical slice of the platform:
   camera aiming, sound, animation dispatch, and movement modifiers;
 - base SWEP implementation;
 - mixed-dialect example weapon;
-- TFA, SWB, MW, and mixed-dialect spawnable templates;
-- server-validated attachments and an in-game inspect/customization panel;
+- TFA, SWB, MW, ARC9, ArcCW, TacRP, and mixed-dialect spawnable templates;
+- server-validated attachments, clientside attachment models, and a provider
+  host with separate inspect, customization, HUD, and presentation domains;
 - standalone converter API;
 - developer-facing documentation.
 
@@ -67,8 +68,10 @@ Weapon File
   -> Weapon Engine
 ```
 
-The runtime does not execute external weapon-base logic. External namespaces are
-accepted only as source dialects and are translated into F&T IR.
+The F&T IR runtime does not execute external weapon-base logic. External
+namespaces are accepted only as source dialects and are translated into F&T IR.
+The explicitly named native fixtures below are still F&T weapons; they use an
+external base only as an optional client-side UI renderer.
 
 ## Namespace Mixing
 
@@ -375,19 +378,70 @@ FT.Recoil.Pattern = {
 ## Playable Templates And Inspect
 
 The addon includes copy-ready, spawnable templates: `ft_template_tfa`,
-`ft_template_swb`, `ft_template_mw`, and `ft_template_mixed`. Each extends
+`ft_template_swb`, `ft_template_mw`, `ft_template_arc9`, `ft_template_arccw`,
+`ft_template_tacrp`, and `ft_template_mixed`. Each extends
 `ft_base`, declares its weapon through `SWEP.FTSource`, and runs without the
 external weapon base whose syntax it resembles.
 
-While holding an F&T weapon, run `ft_customize`, or hold Use and press
-secondary attack, to open the inspect panel. Attachment requests are validated
+There is also a temporary native-template mode for rendering the original base
+interfaces. The six `ft_native_template_*` fixtures still extend `ft_base` and
+compile their own `SWEP.FTSource`; F&T owns gameplay, stats, recoil, ADS,
+reload, attachments, and networking. When the matching base/sample addon is
+installed on a client, the `FTUIBridge` uses its original HUD,
+inspect/customization, attachment presentation, and animations for that active
+F&T weapon. Vendor sample classes are never inherited and are not required by
+the dedicated server. Use `FTBase.Compat.GetManifest()` to inspect the map,
+`FTBase.Compat.Check("client")` for missing client UI classes, and
+`FTBase.Compat.Check("server")` to verify the dependency-free server
+contract.
+
+Install native dependencies into isolated server addon directories with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tools/server/install_native_dependencies.ps1 `
+  -ServerRoot "D:\CMD_STEAM\steamapps\common\GarrysModDS\garrysmod" `
+  -SourceRoot "C:\Users\ameri\AppData\Local\Temp\gmpublisher\bases" `
+  -Clean
+```
+
+The installer only cleans the known `ft_native_dep_*` directories and
+`ft_base_visual_test`. See [`docs/WEAPON_TEMPLATES.md`](docs/WEAPON_TEMPLATES.md)
+for the complete native manifest and capability table.
+
+The shipped templates intentionally exercise the current runtime surface:
+dialect-specific visual providers, inspect/customize poses and animations,
+ADS or scope metadata, default installed attachments, and clientside attachment
+models with bone or attachment anchors plus skin/material/bodygroup overrides.
+
+While holding an F&T weapon, press the Context Menu key (`C`) or run
+`ft_customize`; holding Use and pressing secondary attack is also supported.
+Attachment requests are validated
 server-side and rebuild an effective IR without mutating the compiled source.
 See [`docs/WEAPON_TEMPLATES.md`](docs/WEAPON_TEMPLATES.md) for the template and
 attachment modifier API.
 
-Customization UI is selected from the compiled source style. TFA, SWB, MW, and
-mixed weapons receive their own F&T-native provider layout. Authors can force a
-provider with `FT.Customization.Provider = "TFA"` (or `SWB`, `MW`, `mixed`).
+Visual presentation is selected independently for `inspect`, `attachments`,
+`hud`, and `presentation`. Explicit `FT.Visual.*` values win, followed by
+`FT.Priority`, the effective domain origin, and a stable F&T fallback. A pure
+TFA definition therefore receives TFA presentation everywhere; in the shipped
+mixed example MW owns the gunsmith while TFA owns inspect, HUD, and weapon
+presentation. Multi-dialect ownership is recorded in the compile report.
+
+Authors can override a domain explicitly:
+
+```lua
+FT.Visual.HUD = "TFA"
+FT.Visual.Attachments = "MW"
+```
+
+Supported values are `FT`, `TFA`, `MW`, `SWB`, `ARC9`, `ArcCW`, and `TacRP`.
+`FT.Customization.Provider` remains an alias for `FT.Visual.Attachments`; its
+legacy value `mixed` means automatic domain selection. The providers are
+self-contained F&T modules and do not require an external weapon base at runtime.
+Every provider implements `Open`, `Close`, `Refresh`, `HandleInput`, `DrawHUD`,
+`ApplyPresentation`, `GetSlots`, `GetOptions`, `GetInspectData`, and
+`BuildAttachmentRequest`. Namespaced UI resources live under
+`materials/ft_base/providers/`; original vendor autorun files are never loaded.
 
 ## Repository Layout
 
@@ -404,20 +458,32 @@ lua/
   ft_converter/    Converter API and generators
   weapons/
     ft_base/       Base SWEP
+    ft_native_template_tfa/
+    ft_native_template_arc9/
+    ft_native_template_arccw/
+    ft_native_template_mw/
+    ft_native_template_tacrp/
+    ft_native_template_swb/
     ft_example_mixed/
     ft_template_tfa/
     ft_template_swb/
     ft_template_mw/
+    ft_template_arc9/
+    ft_template_arccw/
+    ft_template_tacrp/
     ft_template_mixed/
 tools/
   ft_converter.lua
   ft_smoke_test.lua
+  vendor/          Deterministic snapshot import and verification
 docs/
   ARCHITECTURE.md
   COMPILER.md
   IR_SCHEMA.md
   CONVERTER.md
   WEAPON_TEMPLATES.md
+third_party/workshop/
+  <workshop-id>/   Isolated raw reference snapshot plus SHA-256 manifest
 ```
 
 ## Development Smoke Test
@@ -430,11 +496,23 @@ include("tools/ft_smoke_test.lua")
 
 The smoke test compiles a mixed-style source file and prints the compile report.
 
+For the dedicated-server setup and a six-provider smoke test, see
+[`docs/TEST_SERVER.md`](docs/TEST_SERVER.md).
+
+## Visual References
+
+The six supplied Workshop packages are preserved as isolated reference/vendor
+snapshots under `third_party/workshop/<id>/`; they are not part of GMod's Lua
+load tree. A small attributed subset of UI fonts and materials is copied into
+the F&T namespace for the active providers. Full source IDs, byte counts,
+manifest digests, author credits, and the publication declaration are in
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+
 ## Design Rules
 
 F&T Base follows a few hard rules:
 
-- external weapon bases are never runtime dependencies;
+- external weapon bases are never dependencies of ordinary F&T IR weapons;
 - adapters translate syntax only;
 - the runtime consumes only F&T IR;
 - conflicts must be visible and readable;

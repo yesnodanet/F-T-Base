@@ -1,0 +1,283 @@
+-- Compiles the shipped SWEP sources directly so templates cannot drift away
+-- from the adapter, IR, and visual-provider contracts.
+
+local Path = FTBase.Util.Path
+local Table = FTBase.Util.Table
+
+local profiles = {
+    {class = "ft_template_tfa", provider = "tfa", adsPose = true, automatic = false},
+    {class = "ft_template_arc9", provider = "arc9"},
+    {class = "ft_template_arccw", provider = "arccw"},
+    {class = "ft_template_mw", provider = "mw", adsPose = true},
+    {class = "ft_template_swb", provider = "swb", adsPose = true, nativeHud = true},
+    {class = "ft_template_tacrp", provider = "tacrp"},
+    {
+        class = "ft_template_mixed",
+        providers = {
+            inspect = "tfa",
+            attachments = "mw",
+            hud = "tfa",
+            presentation = "tfa"
+        },
+        adsPose = true
+    },
+    {
+        class = "ft_example_mixed",
+        providers = {
+            inspect = "tfa",
+            attachments = "mw",
+            hud = "tfa",
+            presentation = "tfa"
+        },
+        adsPose = true
+    }
+}
+
+local nativeProfiles = {
+    {
+        class = "ft_native_template_tfa",
+        dialect = "TFA",
+        sample = "tfa_ins2_cw_ar15",
+        dependencyBase = "tfa_gun_base",
+        bridge = "tfa",
+        clientRequiredClasses = {"tfa_gun_base", "tfa_ins2_cw_ar15"},
+        workshop = {"2840031720", "1676032134"}
+    },
+    {
+        class = "ft_native_template_arc9",
+        dialect = "ARC9",
+        sample = "arc9_go_ak47",
+        dependencyBase = "arc9_base",
+        bridge = "arc9",
+        clientRequiredClasses = {"arc9_base", "arc9_go_base", "arc9_go_ak47"},
+        workshop = {"2910505837", "2910537020"}
+    },
+    {
+        class = "ft_native_template_arccw",
+        dialect = "ArcCW",
+        sample = "arccw_go_ak47",
+        dependencyBase = "arccw_base",
+        bridge = "arccw",
+        clientRequiredClasses = {"arccw_base", "arccw_go_ak47"},
+        workshop = {"2131057232", "2257255110"}
+    },
+    {
+        class = "ft_native_template_mw",
+        dialect = "MW",
+        sample = "mg_mike4",
+        dependencyBase = "mg_base",
+        bridge = "mw",
+        clientRequiredClasses = {"mg_base", "mg_mike4"},
+        workshop = {"2459720887", "2528829149"}
+    },
+    {
+        class = "ft_native_template_tacrp",
+        dialect = "TacRP",
+        sample = "tacrp_eo_masada",
+        dependencyBase = "tacrp_base",
+        bridge = "tacrp",
+        clientRequiredClasses = {"tacrp_base", "tacrp_eo_masada"},
+        workshop = {"3734712166", "3271554982"}
+    },
+    {
+        class = "ft_native_template_swb",
+        dialect = "SWB",
+        sample = nil,
+        dependencyBase = "swb_base",
+        bridge = "swb",
+        clientRequiredClasses = {"swb_base"},
+        workshop = {"1967187358"}
+    }
+}
+
+local function includeDefinition(className)
+    local previousSWEP = SWEP
+    SWEP = {}
+
+    local ok, message = pcall(include, "weapons/" .. className .. "/shared.lua")
+    local definition = SWEP
+    SWEP = previousSWEP
+
+    assert(ok, tostring(message))
+    assert(type(definition.FTSource) == "string", className .. " must declare SWEP.FTSource")
+    return definition
+end
+
+local function includeNativeDefinition(className)
+    local previousSWEP = SWEP
+    SWEP = {}
+
+    local ok, message = pcall(include, "weapons/" .. className .. "/shared.lua")
+    local definition = SWEP
+    SWEP = previousSWEP
+
+    assert(ok, tostring(message))
+    return definition
+end
+
+local function assertArrayEquals(actual, expected, message)
+    assert(type(actual) == "table", message .. " must be an array")
+    assert(#actual == #expected, message .. " has the wrong number of entries")
+
+    for index, expectedValue in ipairs(expected) do
+        assert(actual[index] == expectedValue,
+            message .. " has the wrong entry at " .. index)
+    end
+end
+
+local function assertPose(ir, path, className)
+    local pose = Path.Get(ir, path)
+
+    assert(type(pose) == "table", className .. " is missing " .. path)
+    assert(pose.pos ~= nil, className .. " is missing " .. path .. ".pos")
+    assert(pose.ang ~= nil, className .. " is missing " .. path .. ".ang")
+end
+
+local function hasAppearanceOverride(visual)
+    return visual.skin ~= nil
+        or visual.material ~= nil
+        or type(visual.materials) == "table"
+        or type(visual.bodygroups) == "table"
+        or type(visual.elements) == "table"
+        or type(visual.color) == "table"
+end
+
+local function assertAttachmentVisuals(ir, className)
+    local definitions = ir.attachments and ir.attachments.definitions or {}
+    local definitionIds = Table.Keys(definitions)
+
+    assert(#(ir.attachments.slots or {}) >= 2, className .. " must demonstrate at least two attachment slots")
+    assert(#definitionIds >= 2, className .. " must demonstrate at least two attachment definitions")
+
+    local hasAnchoredView = false
+    local hasAnchoredWorld = false
+    local hasAppearance = false
+
+    for _, attachmentId in ipairs(definitionIds) do
+        local definition = definitions[attachmentId]
+        local visuals = type(definition) == "table" and definition.visuals or nil
+        local view = type(visuals) == "table" and (visuals.view or visuals.viewModel) or nil
+        local world = type(visuals) == "table" and (visuals.world or visuals.worldModel) or nil
+
+        if type(view) == "table" and type(view.model) == "string" then
+            hasAnchoredView = hasAnchoredView
+                or (type(view.bone) == "string" or type(view.attachment) == "string")
+                    and view.pos ~= nil and view.ang ~= nil
+            hasAppearance = hasAppearance or hasAppearanceOverride(view)
+        end
+
+        if type(world) == "table" and type(world.model) == "string" then
+            hasAnchoredWorld = hasAnchoredWorld
+                or (type(world.bone) == "string" or type(world.attachment) == "string")
+                    and world.pos ~= nil and world.ang ~= nil
+            hasAppearance = hasAppearance or hasAppearanceOverride(world)
+        end
+    end
+
+    assert(hasAnchoredView, className .. " must demonstrate an anchored view attachment model")
+    assert(hasAnchoredWorld, className .. " must demonstrate an anchored world attachment model")
+    assert(hasAppearance, className .. " must demonstrate an attachment appearance override")
+end
+
+for _, profile in ipairs(profiles) do
+    local definition = includeDefinition(profile.class)
+    local result = FTBase.Compiler.CompileSource(definition.FTSource, {name = profile.class})
+    local summary = result.report:Summary()
+
+    assert(not result.report:HasErrors(), result.report:ToString())
+    assert(summary.unknown == 0, profile.class .. " contains unknown dialect fields\n" .. result.report:ToString())
+
+    local expectedProviders = profile.providers or {
+        inspect = profile.provider,
+        attachments = profile.provider,
+        hud = profile.provider,
+        presentation = profile.provider
+    }
+
+    for domain, provider in pairs(expectedProviders) do
+        assert(result.ir.ui.visual.providers[domain] == provider,
+            profile.class .. " selected " .. tostring(result.ir.ui.visual.providers[domain])
+                .. " instead of " .. provider .. " for " .. domain)
+    end
+
+    if not profile.nativeHud then
+        assertPose(result.ir, "camera.poses.inspect", profile.class)
+        assertPose(result.ir, "camera.poses.customize", profile.class)
+    end
+    assert(result.ir.fire.automatic == (profile.automatic ~= false), profile.class .. " should preserve automatic fire setup")
+    if not profile.nativeHud then
+        assert(result.ir.animations.inspect ~= nil, profile.class .. " is missing its inspect animation")
+        assert(result.ir.ui.inspect.animation ~= nil, profile.class .. " is missing its customization animation")
+    end
+    if profile.adsPose then
+        assert(result.ir.ads.pos ~= nil and result.ir.ads.ang ~= nil,
+            profile.class .. " must demonstrate a dialect ADS pose")
+    else
+        local scopes = result.ir.ads.scopes
+        local hasScopes = type(scopes) == "table" and next(scopes) ~= nil
+        local hasMagnification = type(result.ir.ads.magnification) == "number"
+            and result.ir.ads.magnification > 1
+
+        assert(hasScopes or hasMagnification,
+            profile.class .. " must demonstrate its dialect scope/zoom metadata")
+    end
+    if not profile.nativeHud then
+        assertAttachmentVisuals(result.ir, profile.class)
+    end
+end
+
+for _, profile in ipairs(nativeProfiles) do
+    local definition = includeNativeDefinition(profile.class)
+    local dependency = definition.FTNativeDependency
+
+    assert(definition.FTNative == true, profile.class .. " must be marked as a native template")
+    assert(definition.FTNativeDialect == profile.dialect,
+        profile.class .. " declared the wrong native dialect")
+    assert(definition.Base == "ft_base",
+        profile.class .. " must run through the F&T base")
+    assert(type(definition.FTSource) == "string" and definition.FTSource ~= "",
+        profile.class .. " must declare an F&T source definition")
+    assert(type(definition.FTUIBridge) == "table",
+        profile.class .. " must declare a client UI bridge")
+    assert(definition.FTUIBridge.provider == profile.bridge,
+        profile.class .. " selected the wrong client UI bridge")
+    assert(definition.FTUIBridge.clientOnly == true and definition.FTUIBridge.uiOnly == true,
+        profile.class .. " must expose the vendor only as a client UI dependency")
+
+    local result = FTBase.Compiler.CompileSource(definition.FTSource, {name = profile.class})
+    assert(not result.report:HasErrors(), profile.class .. " F&T source did not compile\n" .. result.report:ToString())
+    assert(type(result.ir) == "table" and type(result.ir.ui) == "table",
+        profile.class .. " did not compile to F&T IR")
+
+    assert(type(dependency) == "table", profile.class .. " is missing FTNativeDependency metadata")
+    assert(dependency.templateClass == profile.class,
+        profile.class .. " metadata has the wrong template class")
+    assert(dependency.sampleClass == profile.sample,
+        profile.class .. " metadata has the wrong sample class")
+    assert(dependency.baseClass == profile.dependencyBase,
+        profile.class .. " metadata has the wrong base dependency")
+    assert(dependency.clientOnly == true and dependency.uiOnly == true,
+        profile.class .. " metadata must limit vendor code to client UI")
+    assert(dependency.requiredOnServer == false,
+        profile.class .. " must not require vendor classes on the server")
+    assert(dependency.gameplayOwner == "ft" and dependency.statsOwner == "ft"
+        and dependency.networkingOwner == "ft",
+        profile.class .. " must retain F&T gameplay, stat, and networking ownership")
+    assertArrayEquals(dependency.requiredClasses, profile.clientRequiredClasses,
+        profile.class .. " vendor UI dependency metadata")
+    assertArrayEquals(dependency.clientRequiredClasses, profile.clientRequiredClasses,
+        profile.class .. " client UI dependency metadata")
+    assertArrayEquals(dependency.serverRequiredClasses, {},
+        profile.class .. " server dependency metadata")
+    assert(type(dependency.workshop) == "table" and #dependency.workshop == #profile.workshop,
+        profile.class .. " metadata has the wrong Workshop dependency count")
+
+    for index, workshopId in ipairs(profile.workshop) do
+        assert(tostring(dependency.workshop[index].id) == workshopId,
+            profile.class .. " metadata has the wrong Workshop dependency at " .. index)
+    end
+end
+
+print("F&T Base template regression passed")
+
+return true

@@ -1,0 +1,190 @@
+ATT.PrintName = "att.melee_tech_block.name"
+ATT.FullName = "att.melee_tech_block.name.full"
+ATT.Icon = Material("entities/tacrp_att_melee_tech_block.png", "mips smooth")
+ATT.Description = "att.melee_tech_block.desc"
+ATT.Pros = { "att.pro.melee_tech_block1", "att.pro.melee_tech_block2" }
+
+ATT.Category = {"melee_tech"}
+
+ATT.SortOrder = 2
+
+ATT.MeleeBlock = true
+ATT.HeavyAttack = true
+
+ATT.Free = true
+
+local function hold(wep)
+    return wep:GetOwner():KeyDown(IN_ATTACK2)
+            and wep:GetBreath() > 0
+            and wep:GetNextSecondaryFire() < CurTime()
+end
+
+
+--[[]
+ATT.Hook_SecondaryAttack = function(wep)
+    -- if wep:StillWaiting() then return end
+    if wep:GetNWFloat("TacRPNextBlock", 0) > CurTime() then return end
+    wep:SetNextSecondaryFire(CurTime() + 0.25)
+    wep:SetNWFloat("TacRPNextBlock", CurTime() + 1)
+    wep:PlayAnimation("idle_defend", 1)
+    wep:SetHoldType("magic")
+    wep:SetNWFloat("TacRPKnifeParry", CurTime() + 0.5)
+    wep:EmitSound("tacrp/weapons/pistol_holster-" .. math.random(1, 4) .. ".wav", 75, 110)
+
+    wep:SetNextIdle(CurTime() + 0.5)
+    if SERVER then
+        wep:SetTimer(0.75, function()
+            wep:SetShouldHoldType()
+        end, "BlockReset")
+    end
+end
+]]
+
+ATT.Hook_PreShoot = function(wep)
+    if wep:GetNWFloat("TacRPKnifeCounter", 0) > CurTime() then
+        wep:EmitSound("common/warning.wav", 70, 120, 1, CHAN_AUTO)
+        -- wep:SetBreath(math.max(0, wep:GetBreath() - 0.5))
+        wep:Melee(true)
+        wep:SetOutOfBreath(false)
+        wep:SetNWFloat("TacRPKnifeCounter", 0)
+        return true
+    end
+    if wep:GetOutOfBreath() then return true end
+end
+
+ATT.Hook_PostThink = function(wep)
+    local canhold = hold(wep)
+
+    local ft = engine.TickInterval() --FrameTime()
+
+    if !IsFirstTimePredicted() then return end
+
+
+    if !wep:GetOutOfBreath() then
+        if canhold and wep:GetBreath() > 0.05 then
+            wep:SetOutOfBreath(true)
+            wep:SetHoldingBreath(false)
+            wep:SetNextIdle(math.huge)
+            wep:PlayAnimation("idle_defend", 1)
+            wep:SetHoldType("magic")
+        end
+    else
+        if !canhold then
+            wep:SetOutOfBreath(false)
+            wep:PlayAnimation("idle", 1)
+            wep:SetShouldHoldType()
+            if wep:GetNWFloat("TacRPKnifeCounter", 0) < CurTime() then
+                wep:SetNextSecondaryFire(CurTime() + 0.5)
+            else
+                wep:SetNextSecondaryFire(CurTime() + 0.15)
+            end
+        else
+            wep:SetBreath(math.max(0, wep:GetBreath() - ft * 0.25))
+        end
+    end
+
+    -- cancel attack post swing into block since SecondaryAttack won't be called at all otherwise
+    -- if wep:GetOwner():KeyDown(IN_ATTACK2) and wep:GetNextSecondaryFire() - CurTime() <= 0.25 and wep:GetNWFloat("TacRPNextBlock", 0) <= CurTime() then
+    --     wep:SetNextSecondaryFire(CurTime())
+    -- end
+end
+
+hook.Add("EntityTakeDamage", "TacRP_Block", function(ent, dmginfo)
+    if !IsValid(dmginfo:GetAttacker()) or !ent:IsPlayer() then return end
+    local wep = ent:GetActiveWeapon()
+
+    if !IsValid(wep) or !wep.ArcticTacRP or !wep:GetValue("MeleeBlock") or !wep:GetBreath() then return end
+    if !(dmginfo:IsDamageType(DMG_GENERIC) or dmginfo:IsDamageType(DMG_CLUB) or dmginfo:IsDamageType(DMG_CRUSH) or dmginfo:IsDamageType(DMG_SLASH) or dmginfo:GetDamageType() == 0) then return end
+    -- if dmginfo:GetAttacker():GetPos():DistToSqr(ent:GetPos()) >= 22500 then return end
+    if (dmginfo:GetAttacker():GetPos() - ent:EyePos()):GetNormalized():Dot(ent:EyeAngles():Forward()) < 0.5 and ((dmginfo:GetDamagePosition() - ent:EyePos()):GetNormalized():Dot(ent:EyeAngles():Forward()) < 0.5) then return end
+
+    -- get guard broken bitch
+    if ent.PalmPunched then
+        ent:SetActiveWeapon(NULL)
+        ent:DropWeapon(wep, dmginfo:GetAttacker():GetPos())
+        return
+    end
+
+    local ang = ent:EyeAngles()
+    local fx = EffectData()
+    fx:SetOrigin(ent:EyePos())
+    fx:SetNormal(ang:Forward())
+    fx:SetAngles(ang)
+    util.Effect("ManhackSparks", fx)
+
+    ent:EmitSound("physics/metal/metal_solid_impact_hard5.wav", 90, math.Rand(105, 110))
+    ent:ViewPunch(AngleRand(-1, 1) * (dmginfo:GetDamage() ^ 0.5))
+
+    wep:SetNWFloat("TacRPKnifeCounter", CurTime() + 0.6)
+
+    local inflictor = dmginfo:GetInflictor()
+    timer.Simple(0, function()
+        if IsValid(inflictor) and inflictor:IsScripted() and scripted_ents.IsBasedOn(inflictor:GetClass(), "tacrp_proj_base") and IsValid(inflictor:GetPhysicsObject()) then
+            inflictor:GetPhysicsObject():SetVelocityInstantaneous(ent:EyeAngles():Forward() * 2000)
+            inflictor:SetOwner(ent)
+        end
+    end)
+
+    if wep:GetBreath() <= 0 then
+        ent:SetActiveWeapon(NULL)
+        ent:DropWeapon(wep, dmginfo:GetAttacker():GetPos())
+        ent:EmitSound("physics/metal/metal_box_break1.wav", 80, 110)
+    end
+
+    return true
+end)
+
+--[[
+hook.Add("EntityTakeDamage", "TacRP_Counter", function(ent, dmginfo)
+    if !IsValid(dmginfo:GetAttacker()) or !dmginfo:GetAttacker():IsPlayer() then return end
+    local wep = dmginfo:GetAttacker():GetActiveWeapon()
+
+    if !IsValid(wep) or !wep.ArcticTacRP or wep:GetNWFloat("TacRPKnifeCounter", 0) < CurTime() or (dmginfo:GetInflictor() != wep and dmginfo:GetInflictor() != dmginfo:GetAttacker()) then return end
+    local dropwep = ent:IsPlayer() and ent:GetActiveWeapon()
+
+    if ent.IsLambdaPlayer then
+        -- drop client weapon model; delay a tick so we don't duplicate on death
+        timer.Simple(0, function()
+            if !IsValid(ent) or ent:Health() < 0 then return end
+            if ent.l_DropWeaponOnDeath and !ent:IsWeaponMarkedNodraw() then
+                net.Start( "lambdaplayers_createclientsidedroppedweapon" )
+                    net.WriteEntity( ent:GetWeaponENT() )
+                    net.WriteEntity( ent )
+                    net.WriteVector( ent:GetPhysColor() )
+                    net.WriteString( ent:GetWeaponName() )
+                    net.WriteVector( dmginfo:GetDamageForce() )
+                    net.WriteVector( dmginfo:GetDamagePosition() )
+                net.Broadcast()
+            end
+        end)
+
+        local run = math.Rand(1, 3)
+        ent.l_WeaponUseCooldown = CurTime() + run
+
+        -- wait a bit before swapping because client relies on the entity to set model
+        ent:GetWeaponENT():SetNoDraw(true)
+        ent:GetWeaponENT():DrawShadow(false)
+        ent:SetHasCustomDrawFunction(false)
+        ent:RetreatFrom(dmginfo:GetAttacker(), run)
+        timer.Simple(1, function()
+            if !IsValid(ent) or ent:Health() < 0 then return end
+            ent.l_Weapon = "none" -- holster function? never heard of 'em
+            ent:PreventWeaponSwitch(false)
+            ent:SwitchWeapon("none", true)
+        end)
+        timer.Simple(run, function()
+            if !IsValid(ent) or ent:Health() < 0 then return end
+            ent:AttackTarget(dmginfo:GetAttacker())
+        end)
+    elseif !IsValid(dropwep) or dropwep:GetHoldType() == "fists" or dropwep:GetHoldType() == "normal" or string.find(dropwep:GetClass(), "fist") or string.find(dropwep:GetClass(), "unarmed") or string.find(dropwep:GetClass(), "hand") then
+        dmginfo:ScaleDamage(1.5)
+    else
+        ent:SetActiveWeapon(NULL)
+        ent:DropWeapon(dropwep, dmginfo:GetAttacker():GetPos())
+    end
+end)
+]]
+
+ATT.Hook_GetHintCapabilities = function(self, tbl)
+    tbl["+attack2"] = {so = 0.1, str = "hint.melee.block"}
+end

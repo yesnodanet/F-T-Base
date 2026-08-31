@@ -1,6 +1,17 @@
 FTBase = FTBase or {}
 FTBase.Compiler = FTBase.Compiler or {}
 
+-- Keep parser/compiler limits in one place.  The values are deliberately
+-- conservative because compiler input can come from workshop content.
+FTBase.Compiler.Limits = FTBase.Compiler.Limits or {
+    maxSourceBytes = 256 * 1024,
+    maxTokens = 20000,
+    maxASTNodes = 10000,
+    maxDepth = 64,
+    maxAttachmentSlots = 64,
+    maxAttachmentDefinitions = 256
+}
+
 local Lexer = {}
 Lexer.__index = Lexer
 
@@ -25,13 +36,18 @@ local function isIdentifierPart(char)
 end
 
 function Lexer.New(source, name)
+    local sourceType = type(source)
+
     return setmetatable({
-        source = source or "",
+        source = sourceType == "string" and source or "",
         name = name or "<source>",
         index = 1,
         line = 1,
         column = 1,
-        tokens = {}
+        tokens = {},
+        tokenLimitReported = false,
+        sourceLimitReported = false,
+        invalidSource = source ~= nil and sourceType ~= "string"
     }, Lexer)
 end
 
@@ -55,6 +71,34 @@ function Lexer:Advance()
 end
 
 function Lexer:Add(typeName, value, line, column)
+    -- EOF must always be emitted, even when the input reached the token cap;
+    -- Parser:Token relies on it for a bounded recovery loop.
+    if typeName == "eof" then
+        self.tokens[#self.tokens + 1] = {
+            type = typeName,
+            value = value,
+            line = line or self.line,
+            column = column or self.column,
+            source = self.name
+        }
+        return true
+    end
+
+    if #self.tokens >= FTBase.Compiler.Limits.maxTokens then
+        if not self.tokenLimitReported then
+            self.tokenLimitReported = true
+            self.tokens[#self.tokens + 1] = {
+                type = "error",
+                value = "Token limit exceeded (maximum " .. tostring(FTBase.Compiler.Limits.maxTokens) .. ")",
+                line = line or self.line,
+                column = column or self.column,
+                source = self.name
+            }
+        end
+
+        return false
+    end
+
     self.tokens[#self.tokens + 1] = {
         type = typeName,
         value = value,
@@ -125,11 +169,40 @@ function Lexer:ReadNumber()
         value[#value + 1] = self:Advance()
         value[#value + 1] = self:Advance()
 
+        local hexDigits = 0
+
         while self.index <= #self.source and isHexDigit(self:Char()) do
             value[#value + 1] = self:Advance()
+            hexDigits = hexDigits + 1
         end
 
-        self:Add("number", tonumber(table.concat(value)) or 0, line, column)
+        if hexDigits == 0 then
+            self:Add("error", "Malformed hexadecimal number", line, column)
+            return
+        end
+
+        if isIdentifierPart(self:Char()) then
+            while self.index <= #self.source and isIdentifierPart(self:Char()) do
+                self:Advance()
+            end
+
+            self:Add("error", "Malformed hexadecimal number", line, column)
+            return
+        end
+
+        if self:Char() == "." then
+            self:Advance()
+            self:Add("error", "Malformed hexadecimal number", line, column)
+            return
+        end
+
+        local number = tonumber(table.concat(value))
+
+        if number == nil or number ~= number or number == math.huge or number == -math.huge then
+            self:Add("error", "Malformed hexadecimal number", line, column)
+        else
+            self:Add("number", number, line, column)
+        end
         return
     end
 
@@ -150,8 +223,16 @@ function Lexer:ReadNumber()
                 value[#value + 1] = self:Advance()
             end
 
+            local exponentDigits = 0
+
             while self.index <= #self.source and isDigit(self:Char()) do
                 value[#value + 1] = self:Advance()
+                exponentDigits = exponentDigits + 1
+            end
+
+            if exponentDigits == 0 then
+                self:Add("error", "Malformed number exponent", line, column)
+                return
             end
 
             break
@@ -167,7 +248,30 @@ function Lexer:ReadNumber()
         return
     end
 
-    self:Add("number", tonumber(table.concat(value)) or 0, line, column)
+    if self:Char() == "." then
+        -- A second dot cannot be part of a number.  Consuming it here keeps
+        -- the parser from interpreting `1.2.3` as two unrelated statements.
+        self:Advance()
+        self:Add("error", "Malformed number", line, column)
+        return
+    end
+
+    if isIdentifierStart(self:Char()) then
+        while self.index <= #self.source and isIdentifierPart(self:Char()) do
+            self:Advance()
+        end
+
+        self:Add("error", "Malformed number", line, column)
+        return
+    end
+
+    local number = tonumber(table.concat(value))
+
+    if number == nil or number ~= number or number == math.huge or number == -math.huge then
+        self:Add("error", "Malformed number", line, column)
+    else
+        self:Add("number", number, line, column)
+    end
 end
 
 function Lexer:ReadIdentifier()
@@ -185,7 +289,30 @@ end
 function Lexer:Tokenize()
     local previousIndex = 0
 
+    if self.invalidSource then
+        self:Add("error", "Source must be a string", 1, 1)
+        self:Add("eof", "", 1, 1)
+        return self.tokens
+    end
+
+    if #self.source > FTBase.Compiler.Limits.maxSourceBytes then
+        self.sourceLimitReported = true
+        self:Add(
+            "error",
+            "Source exceeds maximum size of " .. tostring(FTBase.Compiler.Limits.maxSourceBytes) .. " bytes",
+            1,
+            1
+        )
+        self:Add("eof", "", 1, 1)
+        return self.tokens
+    end
+
     while self.index <= #self.source do
+        if self.tokenLimitReported then
+            self:Add("eof", "", self.line, self.column)
+            return self.tokens
+        end
+
         self:SkipWhitespace()
 
         if self.index > #self.source then

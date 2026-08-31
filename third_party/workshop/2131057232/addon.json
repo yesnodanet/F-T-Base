@@ -1,0 +1,17 @@
+{
+  "title": "[ArcCW] Arctic's Customizable Weapons (Base)",
+  "type": "weapon",
+  "tags": [
+    "fun",
+    "roleplay",
+    "realism"
+  ],
+  "ignore": [
+    "*.stuff",
+    "*.py",
+    "workfolder*",
+    ".stuff*",
+    "wank*",
+    "arccw.jpg"
+  ]
+}

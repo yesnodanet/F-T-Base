@@ -1,0 +1,13 @@
+{
+    "schemaVersion":  1,
+    "workshopId":  "2131057232",
+    "workshopUrl":  "https://steamcommunity.com/sharedfiles/filedetails/?id=2131057232",
+    "title":  "[ArcCW] Arctic\u0027s Customizable Weapons (Base)",
+    "sourceDirectory":  "arccw_arctic_s_customizable_weapons_base_2131057232",
+    "payloadFileCount":  376,
+    "payloadBytes":  60482541,
+    "manifestAlgorithm":  "SHA-256",
+    "manifestFile":  "MANIFEST.sha256",
+    "manifestSha256":  "fae7b29897b04d53819b9537f18f880914bd4302ad28f6624325e9fb49144ccc",
+    "isolation":  "Reference snapshot only; this directory is outside the Garry\u0027s Mod lua/ load tree."
+}

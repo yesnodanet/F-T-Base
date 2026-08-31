@@ -3,8 +3,93 @@ FTBase.Runtime = FTBase.Runtime or {}
 
 local Networking = FTBase.Module.Define("Networking", {
     NetString = "ft_base_state",
-    CustomizationNetString = "ft_base_customization"
+    CustomizationNetString = "ft_base_customization",
+    CustomizationCooldown = 0.1,
+    MaxAttachmentSlots = 64,
+    MaxIdentifierLength = 64
 })
+
+local lastCustomizationRequest = setmetatable({}, {__mode = "k"})
+
+local function currentTime()
+    return CurTime and CurTime() or os.clock()
+end
+
+local function isValidEntity(entity)
+    if IsValid then
+        return IsValid(entity)
+    end
+
+    return entity ~= nil
+end
+
+local function sortedAttachmentState(runtime)
+    local state = {}
+
+    for slotId, attachmentId in pairs(runtime.attachments.installed or {}) do
+        slotId = tostring(slotId or "")
+        attachmentId = tostring(attachmentId or "")
+
+        if #slotId > 0 and #slotId <= Networking.MaxIdentifierLength
+            and #attachmentId > 0 and #attachmentId <= Networking.MaxIdentifierLength then
+            state[#state + 1] = {slotId, attachmentId}
+        end
+    end
+
+    table.sort(state, function(left, right)
+        return left[1] < right[1]
+    end)
+
+    while #state > Networking.MaxAttachmentSlots do
+        state[#state] = nil
+    end
+
+    return state
+end
+
+local function canRequestCustomization(player, swep)
+    if not isValidEntity(player) or not isValidEntity(swep) or not swep.FTRuntime then
+        return false
+    end
+
+    if not swep.GetOwner or swep:GetOwner() ~= player then
+        return false
+    end
+
+    if not player.Alive or not player:Alive() then
+        return false
+    end
+
+    if not player.GetActiveWeapon or player:GetActiveWeapon() ~= swep then
+        return false
+    end
+
+    local byWeapon = lastCustomizationRequest[player]
+
+    if not byWeapon then
+        byWeapon = setmetatable({}, {__mode = "k"})
+        lastCustomizationRequest[player] = byWeapon
+    end
+
+    local time = currentTime()
+
+    if time < (byWeapon[swep] or 0) then
+        return false
+    end
+
+    byWeapon[swep] = time + Networking.CustomizationCooldown
+    return true
+end
+
+function Networking.CanRequestCustomization(player, swep)
+    return canRequestCustomization(player, swep)
+end
+
+function Networking.IsValidAttachmentRequest(slotId, attachmentId)
+    return type(slotId) == "string" and type(attachmentId) == "string"
+        and #slotId > 0 and #slotId <= Networking.MaxIdentifierLength
+        and #attachmentId <= Networking.MaxIdentifierLength
+end
 
 function Networking.Register()
     if SERVER and util and util.AddNetworkString then
@@ -18,10 +103,17 @@ function Networking.SendAttachmentState(swep, recipient)
         return
     end
 
+    local state = sortedAttachmentState(swep.FTRuntime)
+
     net.Start(Networking.CustomizationNetString)
     net.WriteBool(true)
     net.WriteEntity(swep)
-    net.WriteTable(swep.FTRuntime.attachments.installed or {})
+    net.WriteUInt(#state, 7)
+
+    for _, entry in ipairs(state) do
+        net.WriteString(entry[1])
+        net.WriteString(entry[2])
+    end
 
     if recipient then
         net.Send(recipient)
@@ -35,11 +127,18 @@ function Networking.RequestAttachment(swep, slotId, attachmentId)
         return false
     end
 
+    slotId = tostring(slotId or "")
+    attachmentId = tostring(attachmentId or "")
+
+    if not Networking.IsValidAttachmentRequest(slotId, attachmentId) then
+        return false
+    end
+
     net.Start(Networking.CustomizationNetString)
     net.WriteBool(false)
     net.WriteEntity(swep)
-    net.WriteString(tostring(slotId or ""))
-    net.WriteString(tostring(attachmentId or ""))
+    net.WriteString(slotId)
+    net.WriteString(attachmentId)
     net.SendToServer()
     return true
 end
@@ -53,10 +152,32 @@ local function receiveCustomization(_, player)
             return
         end
 
-        local installed = net.ReadTable() or {}
+        local count = net.ReadUInt(7)
+        local installed = {}
 
-        if IsValid(swep) and swep.FTRuntime then
-            swep.FTRuntime.attachments.installed = installed
+        for index = 1, count do
+            local slotId = net.ReadString() or ""
+            local attachmentId = net.ReadString() or ""
+
+            if index <= Networking.MaxAttachmentSlots
+                and #slotId > 0 and #slotId <= Networking.MaxIdentifierLength
+                and #attachmentId > 0 and #attachmentId <= Networking.MaxIdentifierLength then
+                installed[slotId] = attachmentId
+            end
+        end
+
+        if isValidEntity(swep) and swep.FTRuntime then
+            local verified = {}
+
+            for slotId, attachmentId in pairs(installed) do
+                local allowed = FTBase.Runtime.Attachments.CanInstall(swep.FTRuntime, slotId, attachmentId)
+
+                if allowed then
+                    verified[slotId] = attachmentId
+                end
+            end
+
+            swep.FTRuntime.attachments.installed = verified
             FTBase.Runtime.Attachments.RebuildModifiers(swep.FTRuntime)
 
             if FTBase.Runtime.Inspect then
@@ -67,14 +188,20 @@ local function receiveCustomization(_, player)
         return
     end
 
-    if not SERVER or not IsValid(player) or not IsValid(swep) then
+    if not SERVER then
         return
     end
 
-    local slotId = string.sub(net.ReadString() or "", 1, 64)
-    local attachmentId = string.sub(net.ReadString() or "", 1, 64)
+    local slotId = net.ReadString() or ""
+    local attachmentId = net.ReadString() or ""
 
-    if swep:GetOwner() ~= player or not swep.FTRuntime then
+    -- Consume the per-player/per-weapon budget before inspecting attacker-
+    -- controlled payload sizes so malformed spam cannot bypass the limiter.
+    if not canRequestCustomization(player, swep) then
+        return
+    end
+
+    if not Networking.IsValidAttachmentRequest(slotId, attachmentId) then
         return
     end
 
@@ -87,6 +214,8 @@ local function receiveCustomization(_, player)
     end
 
     if changed then
+        Networking.SendAttachmentState(swep)
+    else
         Networking.SendAttachmentState(swep, player)
     end
 end

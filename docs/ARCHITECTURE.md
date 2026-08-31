@@ -33,7 +33,10 @@ only translate source syntax into IR operations. Runtime modules only consume IR
 - Rendering: view/world model render interfaces.
 - Movement: speed, stance, aim, sprint, blind-fire modifiers.
 - Attachments: nested slots, inheritance, dynamic modifiers.
-- Customization: developer-facing attachment and tuning APIs.
+- Attachment Visuals: namespaced clientside models, bones, offsets, skins,
+  bodygroups, materials, and lifecycle cleanup.
+- Provider Host: per-domain FT/TFA/ARC9/ArcCW/MW/TacRP/SWB UI contracts.
+- Customization: provider-routed attachment and inspect APIs.
 - NPC: NPC fire behavior and proficiency hints.
 - Vehicles: vehicle pose and fire constraints.
 - Physics: projectile and spring helpers.
@@ -43,8 +46,11 @@ only translate source syntax into IR operations. Runtime modules only consume IR
 
 ## Isolation Rule
 
-The runtime has no dependency on TFA, ARC9, ArcCW, MW Base, TacRP, or SWB. Dialect
-names may appear in adapter files and compiler reports only.
+The runtime has no dependency on TFA, ARC9, ArcCW, MW Base, TacRP, or SWB. Raw
+Workshop snapshots live outside `lua/` and are not included by bootstrap.
+Dialect identifiers may appear in adapters, compiler provenance, and the
+F&T-native provider registry; providers consume IR and namespaced F&T assets,
+never vendor globals or original SWEPs.
 
 ## Extension Rule
 

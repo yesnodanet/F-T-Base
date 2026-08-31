@@ -1,0 +1,41 @@
+# Raw Workshop snapshots are reference data. Keep source and manifests readable,
+# but store all binary assets through Git LFS.
+third_party/workshop/** -text whitespace=-trailing-space,-space-before-tab
+third_party/workshop/**/*.mdl filter=lfs diff=lfs merge=lfs -text
+third_party/workshop/**/*.vvd filter=lfs diff=lfs merge=lfs -text
+third_party/workshop/**/*.vtx filter=lfs diff=lfs merge=lfs -text
+third_party/workshop/**/*.phy filter=lfs diff=lfs merge=lfs -text
+third_party/workshop/**/*.vtf filter=lfs diff=lfs merge=lfs -text
+third_party/workshop/**/*.vmt filter=lfs diff=lfs merge=lfs -text
+third_party/workshop/**/*.wav filter=lfs diff=lfs merge=lfs -text
+third_party/workshop/**/*.mp3 filter=lfs diff=lfs merge=lfs -text
+third_party/workshop/**/*.ogg filter=lfs diff=lfs merge=lfs -text
+third_party/workshop/**/*.pcf filter=lfs diff=lfs merge=lfs -text
+third_party/workshop/**/*.png filter=lfs diff=lfs merge=lfs -text
+third_party/workshop/**/*.jpg filter=lfs diff=lfs merge=lfs -text
+third_party/workshop/**/*.jpeg filter=lfs diff=lfs merge=lfs -text
+third_party/workshop/**/*.gif filter=lfs diff=lfs merge=lfs -text
+third_party/workshop/**/*.tga filter=lfs diff=lfs merge=lfs -text
+third_party/workshop/**/*.ttf filter=lfs diff=lfs merge=lfs -text
+third_party/workshop/**/*.otf filter=lfs diff=lfs merge=lfs -text
+third_party/workshop/**/*.vcs filter=lfs diff=lfs merge=lfs -text
+
+# Active provider assets use the same storage policy as the raw snapshots.
+**/*.mdl filter=lfs diff=lfs merge=lfs -text
+**/*.vvd filter=lfs diff=lfs merge=lfs -text
+**/*.vtx filter=lfs diff=lfs merge=lfs -text
+**/*.phy filter=lfs diff=lfs merge=lfs -text
+**/*.vtf filter=lfs diff=lfs merge=lfs -text
+**/*.vmt filter=lfs diff=lfs merge=lfs -text
+**/*.wav filter=lfs diff=lfs merge=lfs -text
+**/*.mp3 filter=lfs diff=lfs merge=lfs -text
+**/*.ogg filter=lfs diff=lfs merge=lfs -text
+**/*.pcf filter=lfs diff=lfs merge=lfs -text
+**/*.png filter=lfs diff=lfs merge=lfs -text
+**/*.jpg filter=lfs diff=lfs merge=lfs -text
+**/*.jpeg filter=lfs diff=lfs merge=lfs -text
+**/*.gif filter=lfs diff=lfs merge=lfs -text
+**/*.tga filter=lfs diff=lfs merge=lfs -text
+**/*.ttf filter=lfs diff=lfs merge=lfs -text
+**/*.otf filter=lfs diff=lfs merge=lfs -text
+**/*.vcs filter=lfs diff=lfs merge=lfs -text
